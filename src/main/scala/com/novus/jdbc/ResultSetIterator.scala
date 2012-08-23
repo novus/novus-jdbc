@@ -8,6 +8,8 @@ import java.sql.ResultSet
  * Requires a stateful change to accomplish these goals.
  */
 class ResultSetIterator[A](result: ResultSet, f: ResultSet => A) extends Iterator[A] {
+  self =>
+
   private var canBeIncremented = result.next()
 
   override def hasNext = canBeIncremented
@@ -23,5 +25,21 @@ class ResultSetIterator[A](result: ResultSet, f: ResultSet => A) extends Iterato
     }
 
     output
+  }
+
+  override def slice(from: Int, to: Int) = new Iterator[A]{
+    canBeIncremented = result.relative(from)
+
+    private var until = to
+
+    override def hasNext = self.hasNext
+
+    override def next() = if(until > 0){
+      until -= 1
+      self.next()
+    }
+    else{
+      Iterator.empty.next()
+    }
   }
 }

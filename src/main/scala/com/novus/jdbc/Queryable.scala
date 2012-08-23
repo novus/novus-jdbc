@@ -76,7 +76,7 @@ trait Queryable[DBType] {
    * Places the query params into the PreparedStatement. In the case of instances of Iterable, inserts each contained
    * item into the statement individually. Warning: Does not handle nulls, or None as nulls... yet.
    */
-  final protected[jdbc] def statement(stmt: PreparedStatement, params: Any*): PreparedStatement = {
+  protected[jdbc] def statement(stmt: PreparedStatement, params: Any*): PreparedStatement = {
     var i = 1
     while (i <= params.length) {
       params(i - 1) match {

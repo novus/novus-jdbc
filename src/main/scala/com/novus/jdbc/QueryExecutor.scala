@@ -1,6 +1,7 @@
 package com.novus.jdbc
 
 import java.sql.{ ResultSet, Connection }
+import org.slf4j.LoggerFactory
 
 /**
  * A simple mechanism for executing queries on a JDBC data source and transforming
@@ -10,6 +11,7 @@ import java.sql.{ ResultSet, Connection }
  *  Warning: Does not work properly with objects that can only be traversed once.
  */
 trait QueryExecutor[DBType] {
+  val log = LoggerFactory.getLogger(this.getClass)
 
   /**
    * Execute some function requiring a connection, performing whatever management
@@ -17,8 +19,20 @@ trait QueryExecutor[DBType] {
    */
   protected def managed[A](f: Connection => A): A
 
-  final protected def execute[T](q: String, params: Any*)(f: Connection => T): T =
-    managed(f)
+  final protected def execute[T](q: String, params: Any*)(f: Connection => T): T ={
+    val msg = """
+      QUERY:  %s
+      PARAMS: %s
+    """ format (q, params.mkString(", "))
+
+    val now = System.currentTimeMillis
+    val output = managed(f)
+    val later = System.currentTimeMillis
+
+    log.info("Timed: %s timed for %s ms", msg, later - now)
+
+    output
+  }
 
   /** Execute a query and transform only the head of the ResultSet. */
   final def selectOne[T](q: String, params: Any*)(f: ResultSet => T)(implicit query: Queryable[DBType]): Option[T] = {
@@ -62,4 +76,7 @@ trait QueryExecutor[DBType] {
   final def delete(q: String, params: Any*)(implicit query: Queryable[DBType]): Int = {
     execute(q, params: _*) { con => query.delete(con, q, params: _*) }
   }
+
+  /** Shuts down the underlying connection pool. Should be called before this object is garbage collected. */
+  def shutdown()
 }

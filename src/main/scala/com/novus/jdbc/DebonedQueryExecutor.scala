@@ -2,7 +2,6 @@ package com.novus.jdbc
 
 import com.jolbox.bonecp.{ BoneCP, BoneCPConfig }
 import java.sql.Connection
-import org.slf4j.LoggerFactory
 
 /**
  * Implementation of the QueryExecutor using the BoneCP connection pool as the backing SQL connection pool. This class
@@ -12,8 +11,6 @@ import org.slf4j.LoggerFactory
  * @param pool a reference to a BoneCP connection pool.
  */
 class DebonedQueryExecutor[DBType](pool: BoneCP) extends QueryExecutor[DBType] {
-
-  val log = LoggerFactory.getLogger(getClass)
 
   /**
    * Obtain a connection from the BoneCP connection pool object and require that it be returned back to the pool after
