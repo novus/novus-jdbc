@@ -20,6 +20,11 @@ trait QueryExecutor[DBType] {
   final protected def execute[T](q: String, params: Any*)(f: Connection => T): T =
     managed(f)
 
+  /** Returns an iterator containing update counts. */
+  final def executeBatch[I <: Seq[Any]](batchSize: Int = 1000)(q: String, params: Iterator[I])(implicit query: Queryable[DBType]): Iterator[Int] = {
+    execute(q, params) { con => query.executeBatch(batchSize)(con, q, params) }
+  }
+
   /** Execute a query and transform only the head of the ResultSet. */
   final def selectOne[T](q: String, params: Any*)(f: ResultSet => T)(implicit query: Queryable[DBType]): Option[T] = {
     val rs = execute(q, params: _*) { con => query.execute(con, q, params: _*) }
