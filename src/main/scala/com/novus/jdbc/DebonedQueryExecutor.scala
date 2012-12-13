@@ -58,7 +58,8 @@ object DebonedQueryExecutor {
                     name: String,
                     minConnections: Int,
                     maxConnections: Int,
-                    idlePeriodMinutes: Int): DebonedQueryExecutor[DBType] = {
+                    idlePeriodMinutes: Int,
+                    logStatements: Boolean = true): DebonedQueryExecutor[DBType] = {
     val config = new BoneCPConfig
 
     config.setUsername(user)
@@ -69,7 +70,7 @@ object DebonedQueryExecutor {
     config.setPoolName(name)
     config.setIdleConnectionTestPeriodInMinutes(idlePeriodMinutes)
     config.setConnectionTestStatement("SELECT 1")
-    config.setLogStatementsEnabled(true)
+    config.setLogStatementsEnabled(logStatements)
     config.setConnectionHook(hook)
     config.setLazyInit(true)
 

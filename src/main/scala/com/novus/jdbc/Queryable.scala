@@ -23,6 +23,24 @@ trait Queryable[DBType] {
   }
 
   /**
+   * Given a connection, a batch size, an exec statement, and a collection iterator in which each element is
+   * a sequence of parameters conforming to the query, executes the statements in batch against the database.
+   * Returns an iterator of update counts, per jdbc semantics.
+   */
+  def executeBatch[I <: Seq[Any]](batchSize: Int = 1000)(con: Connection, query: String, params: Iterator[I]): Iterator[Int] = {
+    val prepared = con.prepareStatement(query)
+    var results  = Vector[Int]()
+    for( group <- params.grouped(batchSize) ) {
+      for (currParams <- group) {
+        statement(prepared, currParams : _*)
+        prepared.addBatch()
+      }
+      results ++= prepared.executeBatch()
+    }
+    results.iterator
+  }
+
+  /**
    * Given a connection, an insert statement, and an optional list of parameters for that statement, executes the
    * insertion against the database and returns an iterator of IDs.
    */
