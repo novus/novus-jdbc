@@ -49,7 +49,7 @@ class DebonedQueryExecutor[DBType](pool: BoneCP) extends QueryExecutor[DBType] {
 //TODO: Before this goes live talk about what parameters we might want the pools to have.
 object DebonedQueryExecutor {
 
-  private val hook = new DebonedLoggingHook
+  private lazy val hook = new DebonedLoggingHook
 
   def apply[DBType](driver: String,
                     uri: String,

@@ -23,13 +23,13 @@ trait QueryExecutor[DBType] {
     val msg = """
       QUERY:  %s
       PARAMS: %s
-    """ format (q, params.mkString(", "))
+    """ format (q, params mkString (", "))
 
     val now = System.currentTimeMillis
     val output = managed(f)
     val later = System.currentTimeMillis
 
-    log.info("Timed: %s timed for %s ms", msg, later - now)
+    log info ("Timed: %s timed for %s ms", msg, later - now)
 
     output
   }
@@ -40,16 +40,16 @@ trait QueryExecutor[DBType] {
   }
 
   /** Execute a query and transform only the head of the ResultSet. */
-  final def selectOne[T](q: String, params: Any*)(f: ResultSet => T)(implicit query: Queryable[DBType]): Option[T] = {
-    val rs = execute(q, params: _*) { con => query.execute(con, q, params: _*) }
+  final def selectOne[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType], wrapper: ResultSetWrapper[DBType]): Option[T] = {
+    val rs = execute(q, params: _*) { con => query execute (con, q, params: _*) }
 
-    val out = if (rs.next()) {
-      Some(f(rs))
+    val out = if (rs next ()) {
+      Some(f(wrapper wrap (rs)))
     }
     else {
       None
     }
-    rs.close()
+    rs close ()
 
     out
   }
@@ -58,15 +58,15 @@ trait QueryExecutor[DBType] {
    * Execute a query and yield an Iterator[T] which, as consumed, will progress through the ResultSet and lazily
    * transform each member.
    */
-  final def select[T](q: String, params: Any*)(f: ResultSet => T)(implicit query: Queryable[DBType]): Iterator[T] = {
-    val rs = execute(q, params: _*) { con => query.execute(con, q, params: _*) }
+  final def select[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType], wrapper: ResultSetWrapper[DBType]): Iterator[T] = {
+    val rs = execute(q, params: _*) { con => query execute (con, q, params: _*) }
 
-    new ResultSetIterator(rs, f)
+    new ResultSetIterator(wrapper wrap (rs), f)
   }
 
   /** Returns an iterator containing the ID column which was inserted. */
   final def insert(q: String, params: Any*)(implicit query: Queryable[DBType]): Iterator[Int] = {
-    execute(q, params: _*) { con => query.insert(con, q, params: _*) }
+    execute(q, params: _*) { con => query insert (con, q, params: _*) }
   }
 
   /**
@@ -74,12 +74,12 @@ trait QueryExecutor[DBType] {
    * DDL statement, then a 0 is returned.
    */
   final def update(q: String, params: Any*)(implicit query: Queryable[DBType]): Int = {
-    execute(q, params: _*) { con => query.update(con, q, params: _*) }
+    execute(q, params: _*) { con => query update (con, q, params: _*) }
   }
 
   /** Returns the row count deleted by this SQL statement. */
   final def delete(q: String, params: Any*)(implicit query: Queryable[DBType]): Int = {
-    execute(q, params: _*) { con => query.delete(con, q, params: _*) }
+    execute(q, params: _*) { con => query delete (con, q, params: _*) }
   }
 
   /** Shuts down the underlying connection pool. Should be called before this object is garbage collected. */

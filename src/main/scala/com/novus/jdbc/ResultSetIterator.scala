@@ -7,10 +7,10 @@ import java.sql.ResultSet
  * of ResultSet::next() with Iterator::next(). Auto-increments the ResultSet to the initial result from the DB.
  * Requires a stateful change to accomplish these goals.
  */
-class ResultSetIterator[A](result: ResultSet, f: ResultSet => A) extends Iterator[A] {
+class ResultSetIterator[Res <: ResultSet, +A](result: Res, f: Res => A) extends Iterator[A] {
   self =>
 
-  private var canBeIncremented = result.next()
+  private var canBeIncremented = result next ()
 
   override def hasNext = canBeIncremented
 
@@ -18,7 +18,7 @@ class ResultSetIterator[A](result: ResultSet, f: ResultSet => A) extends Iterato
     val output = f(result)
 
     if (canBeIncremented) {
-      canBeIncremented = result.next()
+      canBeIncremented = result next ()
     }
     else {
       result.close()
@@ -28,7 +28,7 @@ class ResultSetIterator[A](result: ResultSet, f: ResultSet => A) extends Iterato
   }
 
   override def slice(from: Int, to: Int) = new Iterator[A]{
-    canBeIncremented = result.relative(from)
+    canBeIncremented = result relative (from)
 
     private var until = to
 

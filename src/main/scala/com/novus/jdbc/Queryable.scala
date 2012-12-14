@@ -2,8 +2,9 @@ package com.novus.jdbc
 
 import java.util.regex.{ Matcher, Pattern }
 import annotation.tailrec
-import java.sql.{ SQLException, PreparedStatement, ResultSet, Connection }
+import java.sql._
 import java.io.{ Reader, InputStream }
+import scala.Some
 
 /**
  * Abstracts the Database specific logic away from the management of the connection pools.
@@ -44,7 +45,14 @@ trait Queryable[DBType] {
    * Given a connection, an insert statement, and an optional list of parameters for that statement, executes the
    * insertion against the database and returns an iterator of IDs.
    */
-  def insert(con: Connection, query: String, params: Any*): Iterator[Int]
+  def insert(con: Connection, q: String, params: Any*): Iterator[Int] = {
+    val prepared = con.prepareStatement(q, Statement.RETURN_GENERATED_KEYS)
+    val stmt = statement(prepared, params: _*)
+    stmt.executeUpdate()
+    val keys = stmt.getGeneratedKeys
+
+    new ResultSetIterator[ResultSet,Int](keys, _ getInt (0))
+  }
 
   /**
    * Given a connection, an update statement, and an optional list of parameters for that statement, executes the
