@@ -70,7 +70,7 @@ trait Queryable[DBType] {
    */
   def delete(con: Connection, query: String, params: Any*): Int = update(con, query, params: _*)
 
-  protected val questionMark = Pattern.compile("""\?""")
+  protected[jdbc] val questionMark = Pattern.compile("""\?""")
   /**
    * PreparedStatements can not take in a List, Set, or some other Iterable as an argument unless they have the required
    * number of query marks (?) in the query string. This method generates a new query string with the right ? count if
@@ -100,31 +100,23 @@ trait Queryable[DBType] {
 
   /**
    * Places the query params into the PreparedStatement. In the case of instances of Iterable, inserts each contained
-   * item into the statement individually. Warning: Does not handle nulls, or None as nulls... yet.
+   * item into the statement individually.
    */
   protected[jdbc] def statement(stmt: PreparedStatement, params: Any*): PreparedStatement = {
     var i = 1
-    while (i <= params.length) {
-      params(i - 1) match {
-        case x: Char =>
-          stmt.setString(i, x.toString)
-          i += 1
-        case Some(value) =>
-          stmt.setObject(i, value)
-          i += 1
-        case x: InputStream =>
-          stmt.setBinaryStream(i, x)
-          i += 1
-        case x: Reader =>
-          stmt.setCharacterStream(i, x)
-          i += 1
-        case iter: Iterable[_] => iter.foreach { item =>
-          stmt.setObject(i, item)
+    params foreach { next =>
+      next match {
+        case null => stmt setNull (i, Types.NULL); i += 1
+        case None => stmt setNull (i, Types.NULL); i += 1
+        case x: Char => stmt setString (i, x.toString); i += 1
+        case Some(value) => stmt setObject (i, value); i += 1
+        case x: InputStream => stmt setBinaryStream (i, x); i += 1
+        case x: Reader => stmt setCharacterStream (i, x); i += 1
+        case iter: Iterable[_] => iter foreach { item =>
+          stmt setObject (i, item)
           i += 1
         }
-        case x =>
-          stmt.setObject(i, x)
-          i += 1
+        case x => stmt setObject (i, x); i += 1
       }
     }
 

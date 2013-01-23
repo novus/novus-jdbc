@@ -8,7 +8,7 @@ object NovusjdbcBuild extends sbt.Build {
             base = file("."),
             settings = Project.defaultSettings ++ Seq(
               organization := "com.novus",
-              version := "0.3.0-SNAPSHOT",
+              version := "0.4.0-SNAPSHOT",
               scalaVersion := "2.9.2",
               crossScalaVersions := Seq("2.8.1", "2.9.0", "2.9.0-1", "2.9.1"),
               initialCommands := "import com.novus.jdbc._",
@@ -37,16 +37,19 @@ object NovusjdbcBuild extends sbt.Build {
 }
 
 object Shared {
-  
+
+  val mockito = "org.mockito" % "mockito-all" % "1.9.0"
+
   /** Resolve specs version for the current scala version (thanks @n8han). */
   def specsDep(sv: String, cfg: String = "test") =
     (sv.split("[.-]").toList match {
       case "2" :: "8" :: "1" :: Nil =>
         "org.specs2" %% "specs2" % "1.5" ::
         "org.specs2" %% "specs2-scalaz-core" % "5.1-SNAPSHOT" ::
-        Nil
-      case "2" :: "9" :: "0" :: _ => "org.specs2" % "specs2_2.9.1" % "1.7.1" :: Nil
-      case "2" :: "9" :: _ :: _ => "org.specs2" % "specs2_2.9.1" % "1.8.2" :: Nil
+        mockito :: Nil
+      case "2" :: "9" :: "0" :: _ => "org.specs2" % "specs2_2.9.1" % "1.7.1" :: mockito :: Nil
+      case "2" :: "9" :: _ :: _ => "org.specs2" % "specs2_2.9.1" % "1.8.2" :: mockito :: Nil
+      //case "2" :: "9" :: "2" :: _ => "org.specs2" % "specs2_2.9.2" % "1.13" :: mockito :: Nil
       case _ => sys.error("Specs not supported for scala version %s" format sv)
     }) map (_ % cfg)
   
