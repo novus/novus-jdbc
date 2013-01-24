@@ -27,23 +27,21 @@ trait SqlServerImplicits {
   //TODO: really could use some configs for this eventually.
   implicit object SqlServerWrapper extends ResultSetWrapper[SqlServer]{
     val pattern = DateTimeFormat forPattern "yyyy-MM-dd HH:mm:ss.SSS"
+    val formatter = pattern withZone timezone()
 
     def timezone(id: String = "US/Eastern"): DateTimeZone = DateTimeZone forID (id)
     def timezone(cal: Calendar) = DateTimeZone forTimeZone (cal getTimeZone)
-    def formatter = pattern withZone timezone()
 
     def wrap(row: ResultSet) = new RichResultSet(row){
-      private val timeFormat = formatter
-
       override def getDateTime(column: String): DateTime ={
         val result = row getString (column)
 
-        if(result == null || result.isEmpty) null else timeFormat parseDateTime (result)
+        if(result == null || result.isEmpty) null else formatter parseDateTime (result)
       }
       override def getDateTime(column: Int): DateTime ={
         val result = row getString (column)
 
-        if(result == null || result.isEmpty) null else timeFormat parseDateTime (result)
+        if(result == null || result.isEmpty) null else formatter parseDateTime (result)
       }
       override def getDateTime(column: String, cal: Calendar): DateTime ={
         val result = row getString (column)
