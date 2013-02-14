@@ -64,7 +64,7 @@ class DebonedLoggingHook extends AbstractConnectionHook {
       case "08502" => log.error("SQL Server: <Pool {}> The CONNECT statement issued by an application process running with a SYNCPOINT of TWOPHASE has failed, because no transaction manager is available", pool)
       case "08504" => log.error("SQL Server: <Pool {}> An error was encountered while processing the specified path rename configuration file", pool)
       case "57P01" => log.error("SQL Server: <Pool {}> The database is broken/died", pool)
-      case _       => log.error("SQL Server: <Pool {}> returned error code {}", pool, state)
+      case _       => log.error("SQL Server: <Pool %s> returned error code %s" format (pool, state))
     }
   }
 
