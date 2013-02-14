@@ -22,8 +22,8 @@ class DebonedQueryExecutor[DBType](pool: BoneCP) extends QueryExecutor[DBType] {
       f(connection)
     }
     catch {
-      case ex: NullPointerException => log.error("%s, boneCP pool object returned a null connection", this); throw ex
-      case ex: Exception            => log.error("%s, threw exception: %s", this, ex.getMessage); throw ex
+      case ex: NullPointerException => log.error("{}, boneCP pool object returned a null connection", this); throw ex
+      case ex: Exception            => log.error("{}, threw exception: {}", this, ex.getMessage); throw ex
     }
     finally {
       if (connection != null) connection.close()

@@ -1,6 +1,6 @@
 package com.novus.jdbc
 
-import java.sql.{ ResultSet, Connection }
+import java.sql.Connection
 import org.slf4j.LoggerFactory
 
 /**
@@ -29,7 +29,7 @@ trait QueryExecutor[DBType] {
     val output = managed(f)
     val later = System.currentTimeMillis
 
-    log info ("Timed: %s timed for %s ms", msg, later - now)
+    log info ("Timed: {} timed for {} ms", msg, later - now)
 
     output
   }

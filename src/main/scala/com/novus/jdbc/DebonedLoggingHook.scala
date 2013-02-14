@@ -19,20 +19,20 @@ class DebonedLoggingHook extends AbstractConnectionHook {
   val log = LoggerFactory.getLogger(getClass)
 
   override def onAcquire(handle: ConnectionHandle) {
-    log.debug("SQL Server: <Pool %s> Creating connection", poolName(handle))
+    log.debug("SQL Server: <Pool {}> Creating connection", poolName(handle))
   }
 
   override def onCheckIn(handle: ConnectionHandle) {
-    log.debug("SQL Server: <Pool %s> Returning connection to pool", poolName(handle))
+    log.debug("SQL Server: <Pool {}> Returning connection to pool", poolName(handle))
   }
 
   override def onCheckOut(handle: ConnectionHandle) {
-    log.debug("SQL Server: <Pool %s> Obtaining connection from pool", poolName(handle))
+    log.debug("SQL Server: <Pool {}> Obtaining connection from pool", poolName(handle))
   }
 
   override def onDestroy(handle: ConnectionHandle) {
     if (!handle.isPossiblyBroken) {
-      log.debug("SQL Server: <Pool %s> Destroying connection", poolName(handle))
+      log.debug("SQL Server: <Pool {}> Destroying connection", poolName(handle))
     }
   }
 
@@ -56,15 +56,15 @@ class DebonedLoggingHook extends AbstractConnectionHook {
    */
   protected def connectionState(state: String, pool: String) {
     state match {
-      case "08001" => log.error("SQL Server: <Pool %s> The application requester is unable to establish the connection", pool)
-      case "08002" => log.error("SQL Server: <Pool %s> The connection already exists", pool)
-      case "08003" => log.error("SQL Server: <Pool %s> The connection does not exist", pool)
-      case "08004" => log.error("SQL Server: <Pool %s> The application server rejected establishment of the connection", pool)
-      case "08007" => log.error("SQL Server: <Pool %s> Transaction resolution unknown", pool)
-      case "08502" => log.error("SQL Server: <Pool %s> The CONNECT statement issued by an application process running with a SYNCPOINT of TWOPHASE has failed, because no transaction manager is available", pool)
-      case "08504" => log.error("SQL Server: <Pool %s> An error was encountered while processing the specified path rename configuration file", pool)
-      case "57P01" => log.error("SQL Server: <Pool %s> The database is broken/died", pool)
-      case _       => log.error("SQL Server: <Pool %s> returned error code %s", pool, state)
+      case "08001" => log.error("SQL Server: <Pool {}> The application requester is unable to establish the connection", pool)
+      case "08002" => log.error("SQL Server: <Pool {}> The connection already exists", pool)
+      case "08003" => log.error("SQL Server: <Pool {}> The connection does not exist", pool)
+      case "08004" => log.error("SQL Server: <Pool {}> The application server rejected establishment of the connection", pool)
+      case "08007" => log.error("SQL Server: <Pool {}> Transaction resolution unknown", pool)
+      case "08502" => log.error("SQL Server: <Pool {}> The CONNECT statement issued by an application process running with a SYNCPOINT of TWOPHASE has failed, because no transaction manager is available", pool)
+      case "08504" => log.error("SQL Server: <Pool {}> An error was encountered while processing the specified path rename configuration file", pool)
+      case "57P01" => log.error("SQL Server: <Pool {}> The database is broken/died", pool)
+      case _       => log.error("SQL Server: <Pool {}> returned error code {}", pool, state)
     }
   }
 
