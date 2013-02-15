@@ -29,7 +29,7 @@ object NovusjdbcBuild extends sbt.Build {
               },
               libraryDependencies <++= scalaVersion (v => Seq(
                 "com.jolbox" % "bonecp" % "0.7.1.RELEASE",
-                "net.sourceforge.jtds" % "jtds" % "1.3.0",
+                "net.sourceforge.jtds" % "jtds" % "1.2.6",
                 "org.slf4j" % "slf4j-api" % "1.7.2",
                 "joda-time" % "joda-time" % "2.1",
                 "org.joda" % "joda-convert" % "1.2" % "compile"
