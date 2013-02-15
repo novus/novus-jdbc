@@ -8,7 +8,7 @@ object NovusjdbcBuild extends sbt.Build {
             base = file("."),
             settings = Project.defaultSettings ++ Seq(
               organization := "com.novus",
-              version := "0.5.0-SNAPSHOT",
+              version := "0.6.0-SNAPSHOT",
               scalaVersion := "2.9.2",
               crossScalaVersions := Seq("2.8.1", "2.9.0", "2.9.0-1", "2.9.1"),
               initialCommands := "import com.novus.jdbc._",
@@ -28,11 +28,11 @@ object NovusjdbcBuild extends sbt.Build {
                 Some("Novus " + sfx at nexus + sfx + "/")
               },
               libraryDependencies <++= scalaVersion (v => Seq(
-                "com.jolbox" % "bonecp" % "0.7.1.RELEASE" withSources(),
-                "net.sourceforge.jtds" % "jtds" % "1.2.4" withSources(),
-                "ch.qos.logback" % "logback-classic" % "1.0.9" withSources(),
-                "joda-time" % "joda-time" % "2.1" withSources(),
-                "org.joda" % "joda-convert" % "1.2" % "compile" withSources()
+                "com.jolbox" % "bonecp" % "0.7.1.RELEASE",
+                "net.sourceforge.jtds" % "jtds" % "1.3.0",
+                "org.slf4j" % "slf4j-api" % "1.7.2",
+                "joda-time" % "joda-time" % "2.1",
+                "org.joda" % "joda-convert" % "1.2" % "compile"
             ) ++ Shared.specsDep(v))))
 }
 
