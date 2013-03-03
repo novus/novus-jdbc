@@ -35,9 +35,8 @@ trait QueryExecutor[DBType] {
   }
 
   /** Returns an iterator containing update counts. */
-  final def executeBatch[I <: Seq[Any]](batchSize: Int = 1000)(q: String, params: Iterator[I])(implicit query: Queryable[DBType]): Iterator[Int] = {
+  final def executeBatch[I <: Seq[Any]](batchSize: Int = 1000)(q: String, params: Iterator[I])(implicit query: Queryable[DBType]): Iterator[Int] =
     execute(q, params) { con => query.executeBatch(batchSize)(con, q, params) }
-  }
 
   /** Execute a query and transform only the head of the ResultSet. */
   final def selectOne[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType], wrapper: ResultSetWrapper[DBType]): Option[T] = {
@@ -61,26 +60,27 @@ trait QueryExecutor[DBType] {
   final def select[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType], wrapper: ResultSetWrapper[DBType]): Iterator[T] = {
     val rs = execute(q, params: _*) { con => query execute (con, q, params: _*) }
 
-    new ResultSetIterator(wrapper wrap (rs), f)
+    new ResultSetIterator(wrapper wrap rs, f)
   }
 
+  /** 'Cause sometimes you just want a List of the transformed ResultSet. */
+  final def eagerlySelect[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType], wrapper: ResultSetWrapper[DBType]): List[T] =
+    select(q, params: _*)(f)(query, wrapper).toList
+
   /** Returns an iterator containing the ID column which was inserted. */
-  final def insert(q: String, params: Any*)(implicit query: Queryable[DBType]): Iterator[Int] = {
+  final def insert(q: String, params: Any*)(implicit query: Queryable[DBType]): Iterator[Int] =
     execute(q, params: _*) { con => query insert (con, q, params: _*) }
-  }
 
   /**
    * Returns the row count updated by this SQL statement. If the SQL statement is not a row update operation, such as a
    * DDL statement, then a 0 is returned.
    */
-  final def update(q: String, params: Any*)(implicit query: Queryable[DBType]): Int = {
+  final def update(q: String, params: Any*)(implicit query: Queryable[DBType]): Int =
     execute(q, params: _*) { con => query update (con, q, params: _*) }
-  }
 
   /** Returns the row count deleted by this SQL statement. */
-  final def delete(q: String, params: Any*)(implicit query: Queryable[DBType]): Int = {
+  final def delete(q: String, params: Any*)(implicit query: Queryable[DBType]): Int =
     execute(q, params: _*) { con => query delete (con, q, params: _*) }
-  }
 
   /** Shuts down the underlying connection pool. Should be called before this object is garbage collected. */
   def shutdown()

@@ -1,7 +1,8 @@
-package com.novus.jdbc
+package com.novus.jdbc.bonecp
 
 import com.jolbox.bonecp.{ BoneCP, BoneCPConfig }
 import java.sql.Connection
+import com.novus.jdbc.{Queryable, QueryExecutor}
 
 /**
  * Implementation of the QueryExecutor using the BoneCP connection pool as the backing SQL connection pool. This class
@@ -10,7 +11,7 @@ import java.sql.Connection
  *
  * @param pool a reference to a BoneCP connection pool.
  */
-class DebonedQueryExecutor[DBType](pool: BoneCP) extends QueryExecutor[DBType] {
+class DebonedQueryExecutor[DBType : Queryable](pool: BoneCP) extends QueryExecutor[DBType] {
 
   /**
    * Obtain a connection from the BoneCP connection pool object and require that it be returned back to the pool after
@@ -23,7 +24,7 @@ class DebonedQueryExecutor[DBType](pool: BoneCP) extends QueryExecutor[DBType] {
     }
     catch {
       case ex: NullPointerException => log.error("{}, boneCP pool object returned a null connection", this); throw ex
-      case ex: Exception            => log.error("%s, threw exception: %s" format (this, ex.getMessage)); throw ex
+      case ex: Exception            => log.error("%s, threw exception: %s" format(this, ex.getMessage)); throw ex
     }
     finally {
       if (connection != null) connection.close()
@@ -51,15 +52,15 @@ object DebonedQueryExecutor {
 
   private lazy val hook = new DebonedLoggingHook
 
-  def apply[DBType](driver: String,
-                    uri: String,
-                    user: String,
-                    password: String,
-                    name: String,
-                    minConnections: Int,
-                    maxConnections: Int,
-                    idlePeriodMinutes: Int,
-                    logStatements: Boolean = true): DebonedQueryExecutor[DBType] = {
+  def apply[DBType : Queryable](driver: String,
+                                uri: String,
+                                user: String,
+                                password: String,
+                                name: String,
+                                minConnections: Int,
+                                maxConnections: Int,
+                                idlePeriodMinutes: Int,
+                                logStatements: Boolean = true): DebonedQueryExecutor[DBType] = {
     val config = new BoneCPConfig
 
     config.setUsername(user)

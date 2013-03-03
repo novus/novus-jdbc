@@ -1,14 +1,10 @@
-package com.novus.jdbc
+package com.novus.jdbc.sqlserver
 
+import com.novus.jdbc.{RichResultSet, ResultSetWrapper, ResultSetIterator, Queryable}
 import java.sql.{ResultSet, Statement, Connection}
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
 import java.util.Calendar
-
-//TODO: think about splitting up the DB specific things into their own section.
-object `package` extends SqlServerImplicits
-
-trait SqlServer
 
 trait SqlServerImplicits {
   implicit object SqlServerQueryable extends Queryable[SqlServer] {

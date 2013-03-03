@@ -1,4 +1,4 @@
-package com.novus.jdbc
+package com.novus.jdbc.bonecp
 
 import com.jolbox.bonecp.ConnectionHandle
 import com.jolbox.bonecp.hooks.AbstractConnectionHook
@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory
  * Suggested that we don't do more than we are doing here.
  */
 class DebonedLoggingHook extends AbstractConnectionHook {
-
   val log = LoggerFactory.getLogger(getClass)
 
   override def onAcquire(handle: ConnectionHandle) {
