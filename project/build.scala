@@ -3,12 +3,11 @@ import Keys._
 
 object NovusjdbcBuild extends sbt.Build {
 
-  /** Default project uses Bonecp as the underlying pool. */
   lazy val root = Project(
     id = "novus-jdbc",
     base = file("."),
     settings = baseSettings
-  ).aggregate(novusJdbc, novusJdbcBonecp)
+  ).aggregate(novusJdbc, novusJdbcBonecp, novusJdbcLogging)
   
   lazy val novusJdbc = Project(
     id = "novus-jdbc-core",
