@@ -6,7 +6,8 @@ object NovusjdbcBuild extends sbt.Build {
   /** Default project uses Bonecp as the underlying pool. */
   lazy val root = Project(
     id = "novus-jdbc",
-    base = file(".")
+    base = file("."),
+    settings = baseSettings
   ).aggregate(novusJdbc, novusJdbcBonecp)
   
   lazy val novusJdbc = Project(
