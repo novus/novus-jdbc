@@ -4,9 +4,7 @@ resolvers ++= Seq(
     "OSS Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/",
     "OSS Sonatype Snaps" at "https://oss.sonatype.org/content/repositories/snapshots/")
 
-addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.1.0-SNAPSHOT")
-
-addSbtPlugin("com.typesafe.sbtscalariform" % "sbtscalariform" % "0.4.0")
+addSbtPlugin("com.typesafe.sbt" % "sbt-scalariform" % "1.0.0")
 
 addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.3.0-SNAPSHOT")
 

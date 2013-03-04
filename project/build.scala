@@ -7,7 +7,7 @@ object NovusjdbcBuild extends sbt.Build {
   lazy val root = Project(
     id = "novus-jdbc",
     base = file(".")
-  ).aggregate(novusJdbc, novusJdbcBonecp, novusJdbcLogging)
+  ).aggregate(novusJdbc, novusJdbcBonecp)
   
   lazy val novusJdbc = Project(
     id = "novus-jdbc-core",
@@ -33,9 +33,7 @@ object NovusjdbcBuild extends sbt.Build {
     id = "novus-jdbc-logging",
     base = file("novus-jdbc-logging"),
     settings = baseSettings ++ Seq(libraryDependencies <++= scalaVersion (v => Seq(
-        "org.slf4j" % "slf4j-api" % "1.7.2",
-        "joda-time" % "joda-time" % "2.1",
-        "org.joda" % "joda-convert" % "1.2" % "compile"
+      "ch.qos.logback" % "logback-classic" % "1.0.7"
     ) ++ Shared.specsDep(v))))
 
   lazy val baseSettings = Project.defaultSettings ++ Seq(

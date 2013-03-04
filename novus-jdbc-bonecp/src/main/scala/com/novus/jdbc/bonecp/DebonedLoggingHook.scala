@@ -53,7 +53,7 @@ class DebonedLoggingHook extends AbstractConnectionHook {
   /**
    * Error messages taken directly from the JavaDocs of BoneCP.
    */
-  protected def connectionState(state: String, pool: String) {
+  protected[bonecp] def connectionState(state: String, pool: String) {
     state match {
       case "08001" => log.error("SQL Server: <Pool {}> The application requester is unable to establish the connection", pool)
       case "08002" => log.error("SQL Server: <Pool {}> The connection already exists", pool)
@@ -67,5 +67,5 @@ class DebonedLoggingHook extends AbstractConnectionHook {
     }
   }
 
-  protected def poolName(handle: ConnectionHandle): String = handle.getPool.getConfig.getPoolName
+  protected[bonecp] def poolName(handle: ConnectionHandle): String = handle.getPool.getConfig.getPoolName
 }
