@@ -7,10 +7,13 @@ import org.apache.commons.pool.impl.{GenericKeyedObjectPoolFactory, StackObjectP
 import org.apache.commons.pool.BaseObjectPool
 
 /**
+ * Implementation of the QueryExecutor using the C3P0 connection pool as the backing SQL connection pool. This class
+ * does not handle exceptions other than to log that they happened. Regardless of the outcome of a query, returns the
+ * connection back to the connection pool.
  *
- * @param pool
- * @param underlying
- * @param name
+ * @param pool The Apache pooled data source
+ * @param underlying The underlying pool backing the pooled data source
+ * @param name The name of the pool (appears in the logging statements)
  */
 class ApacheQueryExecutor[DBType : Queryable](pool: PoolingDataSource, underlying: BaseObjectPool, name: String)
     extends QueryExecutor[DBType]{
@@ -53,11 +56,11 @@ object ApacheQueryExecutor{
 
     //wrap the connection pool with a pooling connection factory and statement pool with a connection validation pulse.
     new PoolableConnectionFactory(connectionFactory, connectionPool, statementPool, "SELECT 1", false, true)
+
     val pool = new PoolingDataSource(connectionPool)
+    pool setAccessToUnderlyingConnectionAllowed true
 
-    pool.setAccessToUnderlyingConnectionAllowed(true)
-
-    Class.forName(driver)
+    Class forName driver
     new ApacheQueryExecutor[DBType](pool, connectionPool, name)
   }
 }

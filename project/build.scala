@@ -17,7 +17,8 @@ object NovusjdbcBuild extends sbt.Build {
         "net.sourceforge.jtds" % "jtds" % "1.2.6",
         "org.slf4j" % "slf4j-api" % "1.7.2",
         "joda-time" % "joda-time" % "2.1",
-        "org.joda" % "joda-convert" % "1.2" % "compile"
+        "org.joda" % "joda-convert" % "1.2" % "compile",
+        "org.hsqldb" % "hsqldb" % "2.2.9" % "test"
     ) ++ Shared.specsDep(v))))
 
   lazy val novusJdbcBonecp = Project(
@@ -25,7 +26,7 @@ object NovusjdbcBuild extends sbt.Build {
     base = file("novus-jdbc-bonecp"),
     settings = baseSettings ++ Seq(libraryDependencies <++= scalaVersion (v => Seq(
         "com.jolbox" % "bonecp" % "0.7.1.RELEASE"
-    ) ++ Shared.specsDep(v))))
+    ))))
     .dependsOn(novusJdbc)
 
   lazy val novusJdbcDBCP = Project(
@@ -33,7 +34,7 @@ object NovusjdbcBuild extends sbt.Build {
     base = file("novus-jdbc-dbcp"),
     settings = baseSettings ++Seq(libraryDependencies <++= scalaVersion (v => Seq(
       "commons-dbcp" % "commons-dbcp" % "1.4"
-    ) ++ Shared.specsDep(v))))
+    ))))
     .dependsOn(novusJdbc)
 
   lazy val novusJdbcC3P0 = Project(
@@ -41,7 +42,7 @@ object NovusjdbcBuild extends sbt.Build {
     base = file("novus-jdbc-c3p0"),
     settings = baseSettings ++ Seq(libraryDependencies <++= scalaVersion (v => Seq(
         "c3p0" % "c3p0" % "0.9.1.2" //technically 0.9.2 is latest but need to download it
-    ) ++ Shared.specsDep(v))))
+    ))))
     .dependsOn(novusJdbc)
 
   lazy val novusJdbcLogging = Project(

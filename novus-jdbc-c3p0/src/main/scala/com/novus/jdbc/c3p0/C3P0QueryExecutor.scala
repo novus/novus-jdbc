@@ -5,8 +5,11 @@ import java.sql.Connection
 import com.mchange.v2.c3p0.ComboPooledDataSource
 
 /**
+ * Implementation of the QueryExecutor using the C3P0 connection pool as the backing SQL connection pool. This class
+ * does not handle exceptions other than to log that they happened. Regardless of the outcome of a query, returns the
+ * connection back to the connection pool.
  *
- * @param pool
+ * @param pool a reference to a C3P0 connection pool.
  */
 class C3P0QueryExecutor[DBType : Queryable](pool: ComboPooledDataSource) extends QueryExecutor[DBType]{
 
@@ -62,8 +65,8 @@ object C3P0QueryExecutor{
    *
    * @param driver The driver to be used with the underlying connection pool
    */
-  def apply[DBType : Queryable](driver: String) ={
-    val pool = new ComboPooledDataSource()
+  def apply[DBType : Queryable](driver: String, configName: String) ={
+    val pool = new ComboPooledDataSource(configName)
 
     Class forName driver
     new C3P0QueryExecutor[DBType](pool)

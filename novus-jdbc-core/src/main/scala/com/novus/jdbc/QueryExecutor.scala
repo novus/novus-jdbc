@@ -14,8 +14,7 @@ trait QueryExecutor[DBType] {
   val log = LoggerFactory.getLogger(this.getClass)
 
   /**
-   * Execute some function requiring a connection, performing whatever management
-   *  is necessary (eg ARM / loaner).
+   * Execute some function requiring a connection, performing whatever management is necessary (eg ARM / loaner).
    */
   protected def managed[A](f: Connection => A): A
 
