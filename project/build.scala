@@ -7,7 +7,7 @@ object NovusjdbcBuild extends sbt.Build {
     id = "novus-jdbc",
     base = file("."),
     settings = baseSettings
-  ).aggregate(novusJdbc, novusJdbcBonecp, novusJdbcDBCP, novusJdbcC3P0, novusJdbcLogging)
+  ).aggregate(novusJdbc, novusJdbcBonecp, novusJdbcDBCP, novusJdbcC3P0, novusJdbcTomcat, novusJdbcLogging)
   
   lazy val novusJdbc = Project(
     id = "novus-jdbc-core",
@@ -41,7 +41,15 @@ object NovusjdbcBuild extends sbt.Build {
     id = "novus-jdbc-c3p0",
     base = file("novus-jdbc-c3p0"),
     settings = baseSettings ++ Seq(libraryDependencies <++= scalaVersion (v => Seq(
-        "c3p0" % "c3p0" % "0.9.1.2" //technically 0.9.2 is latest but need to download it
+      "c3p0" % "c3p0" % "0.9.1.2" //technically 0.9.2 is latest but need to download it
+    ))))
+    .dependsOn(novusJdbc)
+
+  lazy val novusJdbcTomcat = Project(
+    id = "novus-jdbc-tomcat",
+    base = file("novus-jdbc-tomcat"),
+    settings = baseSettings ++ Seq(libraryDependencies <++= scalaVersion (v => Seq(
+      "org.apache.tomcat" % "tomcat-jdbc" % "7.0.37"
     ))))
     .dependsOn(novusJdbc)
 
