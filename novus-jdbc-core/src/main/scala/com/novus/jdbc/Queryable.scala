@@ -14,12 +14,19 @@ trait Queryable[DBType] {
 
   /**
    * Given a connection, a valid SQL statement, and an optional list of parameters for that statement, executes the
-   * statement against the database and returns a JDBC ResultSet.
+   * statement against the database and returns a JDBC ResultSet. If the query is not parameterized, no attempt is made
+   * to create a PreparedStatement.
    */
-  def execute[T](query: String, params: Any*)(con: Connection): ResultSet = {
-    val prepared = con.prepareStatement(formatQuery(query, params: _*))
+  def execute[T](query: String, params: Any*)(con: Connection): ResultSet = if(params.isEmpty){
+    val stmt = con createStatement ()
+
+    stmt executeQuery query
+  }
+  else {
+    val prepared = con prepareStatement formatQuery(query, params: _*)
     val stmt = statement(prepared, params: _*)
-    stmt.executeQuery()
+
+    stmt executeQuery ()
   }
 
   /**
@@ -77,7 +84,7 @@ trait Queryable[DBType] {
    */
   final protected[jdbc] def formatQuery(q: String, params: Any*): String = {
     if (params.exists(_.isInstanceOf[Iterable[_]])) {
-      replace(params.toList, questionMark.matcher(q))
+      replace(params.toList, questionMark matcher q)
     }
     else {
       q

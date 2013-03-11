@@ -51,7 +51,7 @@ trait QueryExecutor[DBType] {
     val rs = execute(q, params: _*) { query execute (q, params: _*) }
 
     val out = if (rs next ()) {
-      Some(f(wrapper wrap (rs)))
+      Some(f(wrapper wrap rs))
     }
     else {
       None
