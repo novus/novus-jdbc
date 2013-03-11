@@ -9,7 +9,7 @@ import java.util.Calendar
 trait SqlServerImplicits {
   implicit object SqlServerQueryable extends Queryable[SqlServer] {
 
-    override def insert(con: Connection, q: String, params: Any*): Iterator[Int] = {
+    override def insert(q: String, params: Any*)(con: Connection): Iterator[Int] = {
       val prepared = con.prepareStatement(q, Statement.RETURN_GENERATED_KEYS)
       val stmt = statement(prepared, params: _*)
       stmt.executeUpdate()

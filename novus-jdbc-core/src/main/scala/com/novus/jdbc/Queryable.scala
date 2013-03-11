@@ -4,7 +4,6 @@ import java.util.regex.{ Matcher, Pattern }
 import annotation.tailrec
 import java.sql._
 import java.io.{ Reader, InputStream }
-import scala.Some
 
 /**
  * Abstracts the Database specific logic away from the management of the connection pools.
@@ -17,7 +16,7 @@ trait Queryable[DBType] {
    * Given a connection, a valid SQL statement, and an optional list of parameters for that statement, executes the
    * statement against the database and returns a JDBC ResultSet.
    */
-  def execute[T](con: Connection, query: String, params: Any*): ResultSet = {
+  def execute[T](query: String, params: Any*)(con: Connection): ResultSet = {
     val prepared = con.prepareStatement(formatQuery(query, params: _*))
     val stmt = statement(prepared, params: _*)
     stmt.executeQuery()
@@ -28,7 +27,7 @@ trait Queryable[DBType] {
    * a sequence of parameters conforming to the query, executes the statements in batch against the database.
    * Returns an iterator of update counts, per jdbc semantics.
    */
-  def executeBatch[I <: Seq[Any]](batchSize: Int = 1000)(con: Connection, query: String, params: Iterator[I]): Iterator[Int] = {
+  def executeBatch[I <: Seq[Any]](batchSize: Int = 1000)(query: String, params: Iterator[I])(con: Connection): Iterator[Int] = {
     val prepared = con.prepareStatement(query)
     var results  = Vector[Int]()
     for( group <- params.grouped(batchSize) ) {
@@ -45,7 +44,7 @@ trait Queryable[DBType] {
    * Given a connection, an insert statement, and an optional list of parameters for that statement, executes the
    * insertion against the database and returns an iterator of IDs.
    */
-  def insert(con: Connection, q: String, params: Any*): Iterator[Int] = {
+  def insert(q: String, params: Any*)(con: Connection): Iterator[Int] = {
     val prepared = con.prepareStatement(q, Statement.RETURN_GENERATED_KEYS)
     val stmt = statement(prepared, params: _*)
     stmt.executeUpdate()
@@ -58,7 +57,7 @@ trait Queryable[DBType] {
    * Given a connection, an update statement, and an optional list of parameters for that statement, executes the
    * update against the database and returns the count of the rows affected.
    */
-  def update(con: Connection, query: String, params: Any*): Int = {
+  def update(query: String, params: Any*)(con: Connection): Int = {
     val prepared = con.prepareStatement(formatQuery(query, params: _*))
     val stmt = statement(prepared, params: _*)
     stmt.executeUpdate()
@@ -68,7 +67,7 @@ trait Queryable[DBType] {
    * Given a connection, a delete statement, and an optional list of parameters for that statement, executes the
    * delete against the database and returns the count of the rows affected.
    */
-  def delete(con: Connection, query: String, params: Any*): Int = update(con, query, params: _*)
+  def delete(query: String, params: Any*)(con: Connection): Int = update(query, params: _*)(con)
 
   protected[jdbc] val questionMark = Pattern.compile("""\?""")
   /**

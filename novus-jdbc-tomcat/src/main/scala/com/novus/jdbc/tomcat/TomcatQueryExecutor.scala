@@ -6,21 +6,8 @@ import org.apache.tomcat.jdbc.pool.{DataSource, DataSourceProxy, PoolProperties}
 
 class TomcatQueryExecutor[DBType : Queryable](pool: DataSourceProxy) extends QueryExecutor[DBType]{
 
-  /**
-   * Execute some function requiring a connection, performing whatever management is necessary (eg ARM / loaner).
-   */
-  protected def managed[A](f: (Connection) => A): A ={
-    val connection = pool.getConnection
-    try{
-      f(connection)
-    }
-    catch{
-      case ex: Exception => log error ("%s, threw exception: %s" format(this, ex.getMessage)); throw ex
-    }
-    finally{
-      if (connection != null) connection.close()
-    }
-  }
+  /** Obtain a connection from the underlying connection pool */
+  protected def connection(): Connection = pool.getConnection
 
   /** Shuts down the underlying connection pool. Should be called before this object is garbage collected. */
   def shutdown() {

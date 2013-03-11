@@ -13,23 +13,8 @@ import com.novus.jdbc.{Queryable, QueryExecutor}
  */
 class DebonedQueryExecutor[DBType : Queryable](pool: BoneCP) extends QueryExecutor[DBType] {
 
-  /**
-   * Obtain a connection from the BoneCP connection pool object and require that it be returned back to the pool after
-   * attempted query.
-   */
-  protected def managed[A](f: Connection => A): A = {
-    val connection = pool.getConnection
-    try {
-      f(connection)
-    }
-    catch {
-      case ex: NullPointerException => log.error("{}, boneCP pool object returned a null connection", this); throw ex
-      case ex: Exception            => log.error("%s, threw exception: %s" format(this, ex.getMessage)); throw ex
-    }
-    finally {
-      if (connection != null) connection.close()
-    }
-  }
+  /** Obtain a connection from the underlying connection pool */
+  protected def connection(): Connection = pool.getConnection
 
   /** Shuts down the underlying connection pool. Should be called before this object is garbage collected. */
   def shutdown() {
@@ -76,6 +61,12 @@ object DebonedQueryExecutor {
     config.setLazyInit(true)
 
     Class.forName(driver)
+    new DebonedQueryExecutor[DBType](new BoneCP(config))
+  }
+
+  def apply[DBType : Queryable](config: BoneCPConfig, driver: String): DebonedQueryExecutor[DBType] ={
+    Class.forName(driver)
+
     new DebonedQueryExecutor[DBType](new BoneCP(config))
   }
 }

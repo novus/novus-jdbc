@@ -6,7 +6,7 @@ import java.sql.{ResultSet, Statement, Connection}
 trait HSQLImplicits{
   implicit object HSQLQueryable extends Queryable[HSQL] {
 
-    override def insert(con: Connection, q: String, params: Any*): Iterator[Int] = {
+    override def insert(q: String, params: Any*)(con: Connection): Iterator[Int] = {
       val prepared = con.prepareStatement(q, Statement.RETURN_GENERATED_KEYS)
       val stmt = statement(prepared, params: _*)
       stmt.executeUpdate()
