@@ -26,7 +26,6 @@ trait QueryExecutor[DBType] {
     val con = connection()
     try {
       val output = f(con)
-
       val later = System.currentTimeMillis
 
       log info ("Timed: {} timed for {} ms", msg, later - now)
@@ -51,7 +50,7 @@ trait QueryExecutor[DBType] {
     val rs = execute(q, params: _*) { query execute (q, params: _*) }
 
     val out = if (rs next ()) {
-      Some(f(wrapper wrap (rs)))
+      Some(f(wrapper wrap rs))
     }
     else {
       None
