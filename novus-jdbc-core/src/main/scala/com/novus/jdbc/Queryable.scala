@@ -57,7 +57,7 @@ trait Queryable[DBType] {
     stmt.executeUpdate()
     val keys = stmt.getGeneratedKeys
 
-    new ResultSetIterator[ResultSet,Int](keys, _ getInt (0))
+    new ResultSetIterator[ResultSet,Int](keys, _ getInt 1)
   }
 
   /**

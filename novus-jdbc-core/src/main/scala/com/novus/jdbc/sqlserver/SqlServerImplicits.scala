@@ -7,18 +7,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import java.util.Calendar
 
 trait SqlServerImplicits {
-  implicit object SqlServerQueryable extends Queryable[SqlServer] {
-
-    override def insert(q: String, params: Any*)(con: Connection): Iterator[Int] = {
-      val prepared = con.prepareStatement(q, Statement.RETURN_GENERATED_KEYS)
-      val stmt = statement(prepared, params: _*)
-      stmt.executeUpdate()
-      val keys = stmt.getGeneratedKeys
-
-      /* SQL Server is "1" array based indexing. Guess starting from "0" like the rest of the world wasn't for them. */
-      new ResultSetIterator[ResultSet,Int](keys, _ getInt (1))
-    }
-  }
+  implicit object SqlServerQueryable extends Queryable[SqlServer]
 
   //TODO: really could use some configs for this eventually.
   implicit object SqlServerWrapper extends ResultSetWrapper[SqlServer]{
