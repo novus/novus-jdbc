@@ -3,7 +3,7 @@ package com.novus.jdbc.dbcp
 import com.novus.jdbc.{Queryable, QueryExecutor}
 import org.apache.commons.dbcp.{PoolableConnectionFactory, DriverManagerConnectionFactory, PoolingDataSource}
 import java.sql.Connection
-import org.apache.commons.pool.impl.{GenericKeyedObjectPoolFactory, StackObjectPool}
+import org.apache.commons.pool.impl.{GenericObjectPool, GenericKeyedObjectPoolFactory, StackObjectPool}
 import org.apache.commons.pool.BaseObjectPool
 
 /**
@@ -44,6 +44,26 @@ object ApacheQueryExecutor{
     val statementPool = if(poolStatements) new GenericKeyedObjectPoolFactory(null) else null
 
     //wrap the connection pool with a pooling connection factory and statement pool with a connection validation pulse.
+    new PoolableConnectionFactory(connectionFactory, connectionPool, statementPool, "SELECT 1", false, true)
+
+    val pool = new PoolingDataSource(connectionPool)
+    pool setAccessToUnderlyingConnectionAllowed true
+
+    Class forName driver
+    new ApacheQueryExecutor[DBType](pool, connectionPool, name)
+  }
+
+  def apply[DBType: Queryable](driver: String,
+                               uri: String,
+                               user: String,
+                               password: String,
+                               name: String,
+                               poolStatements: Boolean = true,
+                               config: GenericObjectPool.Config): ApacheQueryExecutor[DBType] ={
+    val connectionFactory = new DriverManagerConnectionFactory(uri, user, password)
+    val connectionPool = new GenericObjectPool(null, config)
+    val statementPool = if(poolStatements) new GenericKeyedObjectPoolFactory(null) else null
+
     new PoolableConnectionFactory(connectionFactory, connectionPool, statementPool, "SELECT 1", false, true)
 
     val pool = new PoolingDataSource(connectionPool)
