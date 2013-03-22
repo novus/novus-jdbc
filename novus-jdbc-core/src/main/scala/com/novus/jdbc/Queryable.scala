@@ -118,6 +118,8 @@ trait Queryable[DBType] {
         case Some(value) => stmt setObject (i, value); i += 1
         case x: InputStream => stmt setBinaryStream (i, x); i += 1
         case x: Reader => stmt setCharacterStream (i, x); i += 1
+        case Right(value) => stmt setObject (i, value); i += 1
+        case Left(value) => stmt setObject (i, value); i += 1
         case iter: Iterable[_] => iter foreach { item =>
           stmt setObject (i, item)
           i += 1

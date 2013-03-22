@@ -38,7 +38,7 @@ object ApacheQueryExecutor{
                                name: String,
                                initCapacity: Int,
                                maxIdleConnections: Int,
-                               poolStatements: Boolean = true): ApacheQueryExecutor[DBType] ={
+                               poolStatements: Boolean): ApacheQueryExecutor[DBType] ={
     val connectionFactory = new DriverManagerConnectionFactory(uri, user, password)
     val connectionPool = new StackObjectPool(maxIdleConnections, initCapacity)
     val statementPool = if(poolStatements) new GenericKeyedObjectPoolFactory(null) else null
@@ -58,8 +58,8 @@ object ApacheQueryExecutor{
                                user: String,
                                password: String,
                                name: String,
-                               poolStatements: Boolean = true,
-                               config: GenericObjectPool.Config): ApacheQueryExecutor[DBType] ={
+                               config: GenericObjectPool.Config,
+                               poolStatements: Boolean): ApacheQueryExecutor[DBType] ={
     val connectionFactory = new DriverManagerConnectionFactory(uri, user, password)
     val connectionPool = new GenericObjectPool(null, config)
     val statementPool = if(poolStatements) new GenericKeyedObjectPoolFactory(null) else null

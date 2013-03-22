@@ -5,8 +5,7 @@ import java.sql.{ResultSet, Date, Time, Timestamp, SQLWarning, ResultSetMetaData
 import org.joda.time.DateTime
 import java.io.{InputStream, Reader}
 import java.net.URL
-import java.util.Calendar
-import java.util
+import java.util.{Calendar, Map => JMap}
 import java.math.BigDecimal
 import org.joda.time.format.DateTimeFormat
 
@@ -340,12 +339,14 @@ abstract class RichResultSet(row: ResultSet) extends ResultSet{
   }
 
   def getStatement: Statement = row getStatement
-  def getObject(columnIndex: Int, map: util.Map[String, Class[_]]): AnyRef = row getObject(columnIndex, map)
+  def getObject(columnIndex: Int, map: JMap[String, Class[_]]): AnyRef = row getObject (columnIndex, map)
+  def getObject(columnLabel: String, map: JMap[String, Class[_]]): AnyRef = row getObject (columnLabel, map)
+  def getObject[T](columnIndex: Int, clazz: Class[T]): T = row getObject (columnIndex, clazz)
+  def getObject[T](columnLabel: String, clazz: Class[T]): T = row getObject (columnLabel, clazz)
   def getRef(columnIndex: Int) = row getRef (columnIndex)
   def getBlob(columnIndex: Int) = row getBlob (columnIndex)
   def getClob(columnIndex: Int) = row getClob (columnIndex)
   def getArray(columnIndex: Int) = row getArray (columnIndex)
-  def getObject(columnLabel: String, map: util.Map[String, Class[_]]): AnyRef = row getObject (columnLabel, map)
   def getRef(columnLabel: String) = row getRef (columnLabel)
   def getBlob(columnLabel: String) = row getBlob (columnLabel)
   def getClob(columnLabel: String) = row getClob (columnLabel)
