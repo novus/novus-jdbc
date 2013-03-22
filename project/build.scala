@@ -62,9 +62,9 @@ object NovusjdbcBuild extends sbt.Build {
 
   lazy val baseSettings = Project.defaultSettings ++ Seq(
     organization := "com.novus",
-    version := "0.8.0-SNAPSHOT",
+    version := "0.9.0-SNAPSHOT",
     scalaVersion := "2.9.2",
-    crossScalaVersions := Seq("2.8.1", "2.9.0", "2.9.0-1", "2.9.1"),
+    crossScalaVersions := Seq("2.8.1", "2.9.0", "2.9.0-1", "2.9.1", "2.10"),
     initialCommands := "import com.novus.jdbc._",
     resolvers ++= Seq(
       "Scala-Tools Maven2 Snapshots Repository" at "http://scala-tools.org/repo-snapshots",
@@ -93,6 +93,7 @@ object Shared {
       case "2" :: "9" :: "0" :: _ => "org.specs2" % "specs2_2.9.1" % "1.7.1" :: mockito :: Nil
       case "2" :: "9" :: _ :: _ => "org.specs2" % "specs2_2.9.1" % "1.8.2" :: mockito :: Nil
       //case "2" :: "9" :: "2" :: _ => "org.specs2" % "specs2_2.9.2" % "1.13" :: mockito :: Nil
+      case "2" :: "10" :: _ => "org.specs2" % "specs2_2.10" % "1.14" :: mockito :: Nil
       case _ => sys.error("Specs not supported for scala version %s" format sv)
     }) map (_ % cfg)
   
