@@ -51,11 +51,18 @@ trait Queryable[DBType] {
    * Given a connection, an insert statement, and an optional list of parameters for that statement, executes the
    * insertion against the database and returns an iterator of IDs.
    */
-  def insert(q: String, params: Any*)(con: Connection): Iterator[Int] = {
-    val prepared = con.prepareStatement(q, Statement.RETURN_GENERATED_KEYS)
-    val stmt = statement(prepared, params: _*)
-    stmt.executeUpdate()
-    val keys = stmt.getGeneratedKeys
+  def insert(q: String, params: Any*)(con: Connection): Iterator[Int] ={
+    val keys = if(params.isEmpty) {
+      val stmt = con createStatement ()
+      stmt executeUpdate (q, Statement.RETURN_GENERATED_KEYS)
+      stmt.getGeneratedKeys
+    }
+    else{
+      val prepared = con prepareStatement (q, Statement.RETURN_GENERATED_KEYS)
+      val stmt = statement(prepared, params: _*)
+      stmt executeUpdate ()
+      stmt.getGeneratedKeys
+    }
 
     new ResultSetIterator[ResultSet,Int](keys, _ getInt 1)
   }
@@ -64,10 +71,16 @@ trait Queryable[DBType] {
    * Given a connection, an update statement, and an optional list of parameters for that statement, executes the
    * update against the database and returns the count of the rows affected.
    */
-  def update(query: String, params: Any*)(con: Connection): Int = {
-    val prepared = con.prepareStatement(formatQuery(query, params: _*))
+  def update(query: String, params: Any*)(con: Connection): Int = if(params.isEmpty){
+    val stmt = con createStatement ()
+
+    stmt executeUpdate query
+  }
+  else{
+    val prepared = con prepareStatement (formatQuery(query, params: _*))
     val stmt = statement(prepared, params: _*)
-    stmt.executeUpdate()
+
+    stmt executeUpdate ()
   }
 
   /**
@@ -83,7 +96,7 @@ trait Queryable[DBType] {
    * passed an iterable.
    */
   final protected[jdbc] def formatQuery(q: String, params: Any*): String = {
-    if (params.exists(_.isInstanceOf[Iterable[_]])) {
+    if (params exists (_.isInstanceOf[Iterable[_]])) {
       replace(params.toList, questionMark matcher q)
     }
     else {
@@ -120,6 +133,8 @@ trait Queryable[DBType] {
         case x: Reader => stmt setCharacterStream (i, x); i += 1
         case Right(value) => stmt setObject (i, value); i += 1
         case Left(value) => stmt setObject (i, value); i += 1
+        case x: java.math.BigDecimal => stmt setBigDecimal(i, x); i += 1
+        case x: java.math.BigInteger => stmt setObject(i, x, Types.BIGINT); i += 1
         case iter: Iterable[_] => iter foreach { item =>
           stmt setObject (i, item)
           i += 1
