@@ -87,7 +87,7 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
       override def next() = if(hasNext){
         until -= 1
         val output = self next ()
-        if(until < 0) close()
+        if(until < 0 || !self.hasNext) close()
         output
       }
       else Iterator.empty next ()
@@ -106,8 +106,8 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
       if(hdDefined && self.hasNext) {
         hd = self next ()
         hdDefined = pred(hd)
+        if(!(hdDefined && self.hasNext)) close()
       }
-      if(!hdDefined) close()
 
       hdDefined
     }

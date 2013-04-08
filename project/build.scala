@@ -64,7 +64,7 @@ object NovusjdbcBuild extends sbt.Build {
     organization := "com.novus",
     version := "0.9.0-SNAPSHOT",
     scalaVersion := "2.9.2",
-    crossScalaVersions := Seq("2.8.1", "2.9.0", "2.9.0-1", "2.9.1", "2.10"),
+    crossScalaVersions := Seq("2.8.1", "2.9.0", "2.9.0-1", "2.9.1"),
     initialCommands := "import com.novus.jdbc._",
     resolvers ++= Seq(
       "Scala-Tools Maven2 Snapshots Repository" at "http://scala-tools.org/repo-snapshots",
