@@ -9,6 +9,31 @@ import annotation.tailrec
 abstract class CloseableIterator[+A] extends Iterator[A]{
   self =>
 
+  override def buffered = new CloseableIterator[A] with BufferedIterator[A]{
+    private var hd: A = _
+    private var hdDefined: Boolean = false
+
+    def head: A = {
+      if (!hdDefined) {
+        hd = next()
+        hdDefined = true
+      }
+      hd
+    }
+
+    def hasNext = hdDefined || self.hasNext
+
+    def next() = if (hdDefined) {
+      hdDefined = false
+      hd
+    }
+    else self next ()
+
+    def close(){
+      self close ()
+    }
+  }
+
   override def map[B](f: A => B) = new CloseableIterator[B] {
     def hasNext = self.hasNext
 

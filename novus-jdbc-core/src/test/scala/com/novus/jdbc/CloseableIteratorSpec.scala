@@ -236,5 +236,22 @@ class CloseableIteratorSpec extends Specification with Mockito{
 
       iter0 padTo (1,3) must haveSize(1)
     }
+    "call close on an iterator that has been padded, dropped and then toList" in {
+      var cnt = 0
+      val iter0 = new CloseableIterator[Int] {
+        val inner = Iterator(1, 1, -1, 3)
+        def hasNext = inner.hasNext
+        def next() ={
+          val out = inner.next()
+          if(!inner.hasNext) close()
+          out
+        }
+        def close(){ cnt += 1 }
+      }
+
+      iter0 padTo (7, 14) drop(3) toList
+
+      cnt must be equalTo 1
+    }
   }
 }
