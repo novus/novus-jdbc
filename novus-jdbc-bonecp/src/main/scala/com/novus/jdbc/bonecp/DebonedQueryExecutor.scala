@@ -45,6 +45,7 @@ object DebonedQueryExecutor {
                                 minConnections: Int,
                                 maxConnections: Int,
                                 idlePeriodMinutes: Int,
+                                statementCacheSize: Int = 0,
                                 logStatements: Boolean = true): DebonedQueryExecutor[DBType] = {
     val config = new BoneCPConfig
 
@@ -59,6 +60,7 @@ object DebonedQueryExecutor {
     config.setLogStatementsEnabled(logStatements)
     config.setConnectionHook(hook)
     config.setLazyInit(true)
+    config.setStatementsCacheSize(statementCacheSize)
 
     Class.forName(driver)
     new DebonedQueryExecutor[DBType](new BoneCP(config))

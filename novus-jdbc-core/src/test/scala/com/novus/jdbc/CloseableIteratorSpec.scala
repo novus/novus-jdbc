@@ -241,11 +241,7 @@ class CloseableIteratorSpec extends Specification with Mockito{
       val iter0 = new CloseableIterator[Int] {
         val inner = Iterator(1, 1, -1, 3)
         def hasNext = inner.hasNext
-        def next() ={
-          val out = inner.next()
-          if(!inner.hasNext) close()
-          out
-        }
+        def next() = inner.next()
         def close(){ cnt += 1 }
       }
 
@@ -254,4 +250,6 @@ class CloseableIteratorSpec extends Specification with Mockito{
       cnt must be equalTo 1
     }
   }
+
+  ""
 }

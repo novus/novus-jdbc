@@ -89,6 +89,12 @@ trait Queryable[DBType] {
    */
   def delete(query: String, params: Any*)(con: Connection): Int = update(query, params: _*)(con)
 
+  /**
+   * Given a connection, a valid merge statement, and an optional list of parameters for that statement, executes the
+   * merge against the database and returns the count of the rows affected.
+   */
+  def merge(query: String, params: Any*)(con: Connection): Int = update(query, params: _*)(con)
+
   protected[jdbc] val questionMark = Pattern.compile("""\?""")
   /**
    * PreparedStatements can not take in a List, Set, or some other Iterable as an argument unless they have the required

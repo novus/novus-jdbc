@@ -89,6 +89,10 @@ trait QueryExecutor[DBType] {
   final def delete(q: String, params: Any*)(implicit query: Queryable[DBType]): Int =
     execute(q, params: _*) { query delete (q, params: _*) }
 
+  /** Returns the row count affected by this SQL statement. */
+  final def merge(q: String, params: Any*)(implicit query: Queryable[DBType]): Int =
+    execute(q, params: _*) { query merge (q, params: _*) }
+
   /** Shuts down the underlying connection pool. Should be called before this object is garbage collected. */
   def shutdown()
 }
