@@ -4,11 +4,13 @@ import java.sql.Connection
 import org.slf4j.LoggerFactory
 
 /**
- * A simple mechanism for executing queries on a JDBC data source and transforming
- *  ResultSet instances into arbitrary types. Implementations must provide an
- *  execution strategy by implementing #connection.
+ * The container object for an underlying database connection pool. All queries are both timed and logged to an
+ * [[org.slf4j.Logger]] which must be configured to the actual logging framework. It is assumed, although not enforced
+ * at compile time, that all statements are DML queries. Implementations of `QueryExecutor` must define the #connection
+ * and the #shutdown methods.
  *
- *  Warning: Does not work properly with objects that can only be traversed once.
+ * @tparam DBType The database type
+ * @note Warning: Does not work properly with objects that can only be traversed once.
  */
 trait QueryExecutor[DBType] {
   val log = LoggerFactory.getLogger(this.getClass)
@@ -16,6 +18,15 @@ trait QueryExecutor[DBType] {
   /** Obtain a connection from the underlying connection pool */
   protected def connection(): Connection
 
+  /**
+   * Responsible for obtaining and returning a DB connection from the connection pool to execute the given query
+   * function.
+   *
+   * @param q The query statement
+   * @param params The query parameters
+   * @param f Any one of the select, update, delete or merge commands
+   * @tparam T The return type of the query
+   */
   final protected def execute[T](q: String, params: Any*)(f: Connection => T): T ={
     val msg = """
       QUERY:  %s
@@ -34,7 +45,7 @@ trait QueryExecutor[DBType] {
     }
     catch {
       case ex: NullPointerException => log error ("{} pool object returned a null connection", this); throw ex
-      case ex: Exception            => log error ("%s, threw exception: %s" format(this, ex.getMessage)); throw ex
+      case ex: Exception            => log error ("{}, threw exception" format this, ex); throw ex
     }
     finally {
       if (con != null) con close ()
@@ -61,8 +72,13 @@ trait QueryExecutor[DBType] {
   }
 
   /**
-   * Execute a query and yield an Iterator[T] which, as consumed, will progress through the ResultSet and lazily
-   * transform each member.
+   * Execute a query and yield a [[com.novus.jdbc.CloseableIterator]] which, as consumed, will progress through the
+   * underlying `RichResultSet` and lazily evaluate the argument function.
+   *
+   * @param q The query statement
+   * @param params The query parameters
+   * @param f A transform from a `RichResultSet` to a type `T`
+   * @tparam T The returned type from the query
    */
   final def select[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType], wrapper: ResultSetWrapper[DBType]): Iterator[T] = {
     val rs = execute(q, params: _*) { query execute (q, params: _*) }
@@ -70,7 +86,11 @@ trait QueryExecutor[DBType] {
     new ResultSetIterator(wrapper wrap rs, f)
   }
 
-  /** 'Cause sometimes you just want a List of the transformed ResultSet. */
+  /**
+   * Eagerly evaluates the argument function against the returned `RichResultSet`.
+   *
+   * @see #select
+   */
   final def eagerlySelect[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType], wrapper: ResultSetWrapper[DBType]): List[T] =
     select(q, params: _*)(f)(query, wrapper).toList
 

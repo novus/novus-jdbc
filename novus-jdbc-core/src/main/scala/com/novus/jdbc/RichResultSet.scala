@@ -36,28 +36,13 @@ abstract class RichResultSet(row: ResultSet) extends ResultSet{
   def getFloat_?(column: String): Option[Float] = wasNull(row getFloat (column))
   def getFloat_?(column: Int): Option[Float] = wasNull(row getFloat (column))
 
-  def getDateTime(column: String): DateTime ={
-    val date = row getTimestamp (column)
+  def getDateTime(column: String): DateTime = parseDate(row getTimestamp column)
+  def getDateTime(column: Int): DateTime = parseDate(row getTimestamp column)
 
-    if(date == null) null else RichResultSet parseTimeStamp (date)
-  }
+  def getDateTime(column: String, cal: Calendar): DateTime = parseDate(row getTimestamp (column, cal))
+  def getDateTime(column: Int, cal: Calendar): DateTime = parseDate(row getTimestamp (column, cal))
 
-  def getDateTime(column: Int): DateTime ={
-    val date = row getTimestamp (column)
-
-    if(date == null) null else RichResultSet parseTimeStamp (date)
-  }
-
-  def getDateTime(column: String, cal: Calendar): DateTime ={
-    val date = row getTimestamp (column, cal)
-
-    if(date == null) null else RichResultSet parseTimeStamp (date)
-  }
-  def getDateTime(column: Int, cal: Calendar): DateTime ={
-    val date = row getTimestamp (column, cal)
-
-    if(date == null) null else RichResultSet parseTimeStamp (date)
-  }
+  protected def parseDate(date: Timestamp) = if(date == null) null else RichResultSet parseTimeStamp (date)
 
   def getDateTime_?(column: String): Option[DateTime] = wasNull(getDateTime (column))
   def getDateTime_?(column: Int): Option[DateTime] = wasNull(getDateTime (column))

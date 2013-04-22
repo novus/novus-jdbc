@@ -9,7 +9,6 @@ import java.util.Calendar
 trait SqlServerImplicits {
   implicit object SqlServerQueryable extends Queryable[SqlServer]
 
-  //TODO: really could use some configs for this eventually.
   implicit object SqlServerWrapper extends ResultSetWrapper[SqlServer]{
     val pattern = DateTimeFormat forPattern "yyyy-MM-dd HH:mm:ss.SSS"
     val formatter = pattern withZone timezone()
@@ -18,38 +17,16 @@ trait SqlServerImplicits {
     def timezone(cal: Calendar) = DateTimeZone forTimeZone (cal getTimeZone)
 
     def wrap(row: ResultSet) = new RichResultSet(row){
-      override def getDateTime(column: String): DateTime ={
-        val result = row getString (column)
+      override def getDateTime(column: String): DateTime = parseDate(row getString column)
+      override def getDateTime(column: Int): DateTime = parseDate(row getString column)
 
-        if(result == null || result.isEmpty) null else formatter parseDateTime (result)
-      }
-      override def getDateTime(column: Int): DateTime ={
-        val result = row getString (column)
+      protected def parseDate(date: String) = if(date == null || date.isEmpty) null else formatter parseDateTime date
 
-        if(result == null || result.isEmpty) null else formatter parseDateTime (result)
-      }
-      override def getDateTime(column: String, cal: Calendar): DateTime ={
-        val result = row getString (column)
+      override def getDateTime(column: String, cal: Calendar): DateTime = parseDate(row getString column, cal)
+      override def getDateTime(column: Int, cal: Calendar): DateTime = parseDate(row getString column, cal)
 
-        if(result == null || result.isEmpty){
-          null
-        }
-        else{
-          val parser = pattern withZone timezone(cal)
-          parser parseDateTime (result)
-        }
-      }
-      override def getDateTime(column: Int, cal: Calendar): DateTime ={
-        val result = row getString (column)
-
-        if(result == null || result.isEmpty){
-          null
-        }
-        else{
-          val parser = pattern withZone timezone(cal)
-          parser parseDateTime (result)
-        }
-      }
+      protected def parseDate(date: String, cal: Calendar) =
+        if(date == null || date.isEmpty) null else pattern withZone timezone(cal) parseDateTime (date)
     }
   }
 }

@@ -3,8 +3,8 @@ package com.novus.jdbc
 import java.sql.ResultSet
 
 /**
- * Container class which lazily evaluates a JDBC ResultSet with the supplied function. Reorients the destructive nature
- * of ResultSet::next() with Iterator::next(). Auto-increments the ResultSet to the initial result from the DB.
+ * Container class which lazily evaluates a [[java.sql.ResultSet]] with the supplied function. Reorients the destructive
+ * nature of ResultSet#next with Iterator#next. Auto-increments the ResultSet to the initial result from the DB.
  * Requires a stateful change to accomplish these goals.
  */
 class ResultSetIterator[Res <: ResultSet, +A](result: Res, f: Res => A) extends CloseableIterator[A] {
