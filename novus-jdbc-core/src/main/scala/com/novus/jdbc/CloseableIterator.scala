@@ -1,6 +1,6 @@
 package com.novus.jdbc
 
-import collection.GenTraversableOnce
+import collection.{Iterator, GenTraversableOnce}
 import annotation.tailrec
 
 //TODO: sliding, grouped
@@ -68,17 +68,9 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
     }
   }
 
-  /**
-   * Returns the number of elements in this iterator.
-   *
-   * @note Reuse: $consumesIterator
-   *              $releasesUnderlying
-   */
-  override def length ={
-    val output = super.length
-    close()
-    output
-  }
+//  override def sliding[B >: A](size: Int, step: Int = 1): GroupedIterator[B] = toList.toIterator.sliding(size, step)
+//
+//  override def grouped[B >: A](size: Int) = toIterator.grouped(size)
 
   /**
    * Creates a new iterator that maps all produced values of this iterator to new values using a transformation
@@ -260,7 +252,7 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
    */
   override def exists(pred: A => Boolean) ={
     val output = super.exists(pred)
-    close()
+    if(hasNext) close()
     output
   }
 
@@ -274,7 +266,7 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
    */
   override def find(pred: A => Boolean) ={
     val output = super.find(pred)
-    close()
+    if(hasNext) close()
     output
   }
 
@@ -288,7 +280,7 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
    */
   override def indexOf[B >: A](elem: B) ={
     val output = super.indexOf(elem)
-    close()
+    if(hasNext) close()
     output
   }
 
@@ -351,11 +343,7 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
    * @note Reuse: $consumesOneAndProducesTwoIterators
    *              $releasesUnderlying
    */
-  override def partition(pred: A => Boolean) ={
-    val output = self.toList.toIterator partition pred
-    close()
-    output
-  }
+  override def partition(pred: A => Boolean) = toList.toIterator partition pred
 
   /**
    * Splits this Iterator into a prefix/suffix pair according to a predicate.
@@ -366,11 +354,7 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
    *  @note Reuse: $consumesOneAndProducesTwoIterators
    *               $releasesUnderlying
    */
-  override def span(pred: A => Boolean) ={
-    val output = self.toList.toIterator span pred
-    close()
-    output
-  }
+  override def span(pred: A => Boolean) = toList.toIterator span pred
 
   /**
    * Creates two new iterators that both iterate over the same elements as this iterator (in the same order).  The
@@ -385,11 +369,7 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
    * @note Reuse: $consumesOneAndProducesTwoIterators
    *              $releasesUnderlying
    */
-  override def duplicate ={
-    val output = self.toList.toIterator.duplicate
-    close()
-    output
-  }
+  override def duplicate = toList.toIterator.duplicate
 
   /**
    * Produces a collection containing cumulative results of applying the operator going left to right.
@@ -435,17 +415,7 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
    */
   override def copyToArray[B >: A](xs: Array[B], start: Int, len: Int) {
     super.copyToArray(xs, start, len)
-    close()
-  }
-
-  override def copyToArray[B >: A](xs: Array[B]){
-    super.copyToArray(xs)
-    close()
-  }
-
-  override def copyToArray[B >: A](xs: Array[B], start: Int){
-    super.copyToArray(xs, start)
-    close()
+    if(hasNext) close()
   }
 
   /**
