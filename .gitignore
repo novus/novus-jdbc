@@ -1,8 +1,11 @@
+
 *~
 *.class
 *.log
 *.idea*
 .DS_Store
+*.class
+*.log
 
 # sbt specific
 dist/*
