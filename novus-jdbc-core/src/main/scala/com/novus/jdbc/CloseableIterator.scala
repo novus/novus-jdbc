@@ -83,7 +83,7 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
   override def map[B](f: A => B) = new CloseableIterator[B] {
     def hasNext = self.hasNext
 
-    def next() = f(self.next())
+    def next() = f(self next ())
 
     def close(){
       self close ()
@@ -294,7 +294,7 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
    */
   override def indexWhere(pred: A => Boolean) ={
     val output = super.indexWhere(pred)
-    close()
+    if(hasNext) close()
     output
   }
 
@@ -542,14 +542,14 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
    */
   override def sameElements(that: Iterator[_]) ={
     val output = super.sameElements(that)
-    close()
+    if(hasNext) close()
     close(that)
     output
   }
 
   protected[jdbc] def close(that: Iterator[_]){
     that match{
-      case x:CloseableIterator[_] => x close ()
+      case x:CloseableIterator[_] if x.hasNext => x close ()
       case _ =>
     }
   }
@@ -557,8 +557,7 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
 //This Scala 2.10 and above.
 //  override def corresponds[B](that: GenTraversableOnce[B])(pred: (A, B) => Boolean) ={
 //    val output = super.corresponds(that)(pred)
-//    close(that)
-//    close()
+//    if(hasNext) close()
 //    output
 //  }
 
@@ -571,6 +570,6 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
 
   /** This is defined as an unreliable fail-safe mechanism for releasing the resource. */
   override def finalize(){
-    close()
+    if(hasNext) close()
   }
 }
