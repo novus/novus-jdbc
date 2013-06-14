@@ -1,13 +1,13 @@
 package com.novus.jdbc
 
-import java.sql.ResultSet
+import java.sql.{Statement, ResultSet}
 
 /**
  * Container class which lazily evaluates a [[java.sql.ResultSet]] with the supplied function. Reorients the destructive
  * nature of ResultSet#next with Iterator#next. Auto-increments the ResultSet to the initial result from the DB.
  * Requires a stateful change to accomplish these goals.
  */
-class ResultSetIterator[Res <: ResultSet, +A](result: Res, f: Res => A) extends CloseableIterator[A] {
+class ResultSetIterator[Res <: ResultSet, +A](statement: Statement, result: Res, f: Res => A) extends CloseableIterator[A] {
   self =>
 
   private var canBeIncremented = result next ()
@@ -48,6 +48,6 @@ class ResultSetIterator[Res <: ResultSet, +A](result: Res, f: Res => A) extends 
   }
 
   def close(){
-    result close ()
+    statement close ()
   }
 }

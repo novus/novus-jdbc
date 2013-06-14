@@ -1,4 +1,3 @@
-
 package com.novus.jdbc
 
 import java.sql.{ResultSet, Date, Time, Timestamp, SQLWarning, ResultSetMetaData, Statement, Ref, RowId, Blob, Clob, NClob, SQLXML}
@@ -9,12 +8,8 @@ import java.util.{Calendar, Map => JMap}
 import java.math.BigDecimal
 import org.joda.time.format.DateTimeFormat
 
-trait ResultSetWrapper[DBType]{
-  def wrap(row: ResultSet): RichResultSet
-}
-
 //This is where a Scala 2.10 Value Type would come in handy.
-abstract class RichResultSet(row: ResultSet) extends ResultSet{
+class RichResultSet(row: ResultSet) extends ResultSet{
   def getDouble(column: String): Double = checkNaN(row getDouble (column), java.lang.Double.NaN)
   def getDouble(column: Int): Double = checkNaN(row getDouble (column), java.lang.Double.NaN)
 

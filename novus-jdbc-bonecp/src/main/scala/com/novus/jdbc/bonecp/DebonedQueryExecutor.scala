@@ -37,6 +37,7 @@ object DebonedQueryExecutor {
 
   private lazy val hook = new DebonedLoggingHook
 
+  @deprecated("Please use the BoneCPConfig object to create a db connection with BoneCP.")
   def apply[DBType : Queryable](driver: String,
                                 uri: String,
                                 user: String,

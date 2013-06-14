@@ -67,18 +67,20 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a `RichResultSet` to a type `T`
    * @tparam T The returned type from the query
    */
-  final def selectOne[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType], wrapper: ResultSetWrapper[DBType]): Option[T] = {
-    val rs = execute(q, params: _*) { query execute (q, params: _*) }
+  final def selectOne[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): Option[T] = {
+    val (stmt, rs) = execute(q, params: _*) { query execute (q, params: _*) }
 
-    val out = if (rs next ()) {
-      Some(f(wrapper wrap rs))
+    try{
+      if (rs next ()) {
+        Some(f(rs))
+      }
+      else {
+        None
+      }
     }
-    else {
-      None
+    finally{
+      stmt close ()
     }
-    rs close ()
-
-    out
   }
 
   /**
@@ -90,10 +92,10 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a `RichResultSet` to a type `T`
    * @tparam T The returned type from the query
    */
-  final def select[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType], wrapper: ResultSetWrapper[DBType]): CloseableIterator[T] = {
-    val rs = execute(q, params: _*) { query execute (q, params: _*) }
+  final def select[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] = {
+    val (stmt, rs) = execute(q, params: _*) { query execute (q, params: _*) }
 
-    new ResultSetIterator(wrapper wrap rs, f)
+    new ResultSetIterator(stmt, rs, f)
   }
 
   /**
@@ -101,8 +103,8 @@ trait QueryExecutor[DBType] {
    *
    * @see #select
    */
-  final def eagerlySelect[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType], wrapper: ResultSetWrapper[DBType]): List[T] =
-    select(q, params: _*)(f)(query, wrapper).toList
+  final def eagerlySelect[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): List[T] =
+    select(q, params: _*)(f)(query).toList
 
   /**
    * Returns an iterator containing the ID column of the rows which were inserted by this insert statement.

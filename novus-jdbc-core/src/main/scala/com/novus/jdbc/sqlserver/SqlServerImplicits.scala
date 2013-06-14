@@ -1,22 +1,20 @@
 package com.novus.jdbc.sqlserver
 
-import com.novus.jdbc.{RichResultSet, ResultSetWrapper, ResultSetIterator, Queryable}
-import java.sql.{ResultSet, Statement, Connection}
+import com.novus.jdbc.{RichResultSet, Queryable}
+import java.sql.ResultSet
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
 import java.util.Calendar
 
 trait SqlServerImplicits {
-  implicit object SqlServerQueryable extends Queryable[SqlServer]
-
-  implicit object SqlServerWrapper extends ResultSetWrapper[SqlServer]{
+  implicit object SqlServerQueryable extends Queryable[SqlServer]{
     val pattern = DateTimeFormat forPattern "yyyy-MM-dd HH:mm:ss.SSS"
     val formatter = pattern withZone timezone()
 
     def timezone(id: String = "US/Eastern"): DateTimeZone = DateTimeZone forID (id)
     def timezone(cal: Calendar) = DateTimeZone forTimeZone (cal getTimeZone)
 
-    def wrap(row: ResultSet) = new RichResultSet(row){
+    override def wrap(row: ResultSet) = new RichResultSet(row){
       override def getDateTime(column: String): DateTime = parseDate(row getString column)
       override def getDateTime(column: Int): DateTime = parseDate(row getString column)
 

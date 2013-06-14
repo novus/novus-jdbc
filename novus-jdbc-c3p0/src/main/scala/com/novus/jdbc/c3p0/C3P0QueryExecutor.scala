@@ -25,6 +25,8 @@ class C3P0QueryExecutor[DBType : Queryable](pool: ComboPooledDataSource) extends
 }
 
 object C3P0QueryExecutor{
+
+  @deprecated("For time being, please use a config file until something else can be figured out")
   def apply[DBType : Queryable](driver: String,
                                 uri: String,
                                 user: String,
@@ -47,8 +49,8 @@ object C3P0QueryExecutor{
 
   /**
    * Creates a QueryExecutor with the C3P0 connection pool without explicit parameter passing in the constructor.
-   * Pool parameters should be written to either the properties file or the XML configuration file otherwise will use
-   * the hard-coded default parameters in the pool implementation itself.
+   * Pool parameters should be written to either the properties file or the XML configuration file. If these do not
+   * exist, the pool will use the hard-coded default parameters in the pool implementation itself.
    *
    * @param driver The driver to be used with the underlying connection pool
    */

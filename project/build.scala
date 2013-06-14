@@ -1,7 +1,11 @@
 import sbt._
 import Keys._
+import sbtassembly.Plugin._
+import AssemblyKeys._
 
 object NovusjdbcBuild extends sbt.Build {
+
+  artifact in (Compile, assembly) ~= { _.copy(`classifier` = Some("assembly")) }
 
   lazy val root = Project(
     id = "novus-jdbc",
@@ -76,7 +80,7 @@ object NovusjdbcBuild extends sbt.Build {
       val sfx = if(version.trim.endsWith("SNAPSHOT")) "snapshots" else "releases"
       val nexus = "https://nexus.novus.com:65443/nexus/content/repositories/"
       Some("Novus " + sfx at nexus + sfx + "/")
-    })
+    }) ++ assemblySettings
 }
 
 object Shared {

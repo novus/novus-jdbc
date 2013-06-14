@@ -18,6 +18,8 @@ class TomcatQueryExecutor[DBType : Queryable](pool: DataSourceProxy) extends Que
 }
 
 object TomcatQueryExecutor{
+
+  @deprecated("Please use the PoolProperties object to configure the Tomcat connection pool")
   def apply[DBType: Queryable](driver: String,
                                uri: String,
                                user: String,

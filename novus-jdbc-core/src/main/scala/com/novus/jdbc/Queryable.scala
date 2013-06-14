@@ -13,6 +13,13 @@ import java.io.{ Reader, InputStream }
 trait Queryable[DBType] {
 
   /**
+   * This function takes a [[java.sql.ResultSet]] and converts it into a [[com.novus.jdbc.RichResultSet]].
+   *
+   * @param row The object to be converted
+   */
+  def wrap(row: ResultSet) = new RichResultSet(row)
+
+  /**
    * Given a connection, a valid SQL statement, and an optional list of parameters for that statement, executes the
    * statement against the database and returns a JDBC ResultSet. If the query is not parameterized, no attempt is made
    * to create a PreparedStatement.
@@ -21,16 +28,16 @@ trait Queryable[DBType] {
    * @param params The query parameters
    * @param con A database connection object
    */
-  def execute[T](query: String, params: Any*)(con: Connection): ResultSet = if(params.isEmpty){
+  def execute(query: String, params: Any*)(con: Connection): (Statement, RichResultSet) = if(params.isEmpty){
     val stmt = con createStatement ()
 
-    stmt executeQuery query
+    (stmt, wrap(stmt executeQuery query))
   }
   else {
     val prepared = con prepareStatement formatQuery(query, params: _*)
     val stmt = statement(prepared, params: _*)
 
-    stmt executeQuery ()
+    (stmt, wrap(stmt executeQuery ()))
   }
 
   /**
@@ -40,15 +47,20 @@ trait Queryable[DBType] {
    */
   def executeBatch[I <: Seq[Any]](batchSize: Int = 1000)(query: String, params: Iterator[I])(con: Connection): Iterator[Int] = {
     val prepared = con.prepareStatement(query)
-    var results  = Vector[Int]()
-    for( group <- params.grouped(batchSize) ) {
-      for (currParams <- group) {
-        statement(prepared, currParams : _*)
-        prepared.addBatch()
+    try{
+      var results  = Vector[Int]()
+      for( group <- params.grouped(batchSize) ) {
+        for (currParams <- group) {
+          statement(prepared, currParams : _*)
+          prepared.addBatch()
+        }
+        results ++= prepared.executeBatch()
       }
-      results ++= prepared.executeBatch()
+      results.iterator
     }
-    results.iterator
+    finally{
+      prepared close ()
+    }
   }
 
   /**
@@ -59,20 +71,18 @@ trait Queryable[DBType] {
    * @param params The query parameters
    * @param con A database connection object
    */
-  def insert(query: String, params: Any*)(con: Connection): CloseableIterator[Int] ={
-    val keys = if(params.isEmpty) {
-      val stmt = con createStatement ()
-      stmt executeUpdate (query, Statement.RETURN_GENERATED_KEYS)
-      stmt.getGeneratedKeys
-    }
-    else{
-      val prepared = con prepareStatement (query, Statement.RETURN_GENERATED_KEYS)
-      val stmt = statement(prepared, params: _*)
-      stmt executeUpdate ()
-      stmt.getGeneratedKeys
-    }
+  def insert(query: String, params: Any*)(con: Connection): CloseableIterator[Int] = if(params.isEmpty) {
+    val stmt = con createStatement ()
+    stmt executeUpdate (query, Statement.RETURN_GENERATED_KEYS)
 
-    new ResultSetIterator[ResultSet,Int](keys, _ getInt 1)
+    new ResultSetIterator[ResultSet,Int](stmt, stmt.getGeneratedKeys, _ getInt 1) //compiler can't deduce the types...
+  }
+  else{
+    val prepared = con prepareStatement (query, Statement.RETURN_GENERATED_KEYS)
+    val stmt = statement(prepared, params: _*)
+    stmt executeUpdate ()
+
+    new ResultSetIterator[ResultSet,Int](stmt, stmt.getGeneratedKeys, _ getInt 1) //compiler can't deduce the types...
   }
 
   /**
@@ -86,13 +96,13 @@ trait Queryable[DBType] {
   def update(query: String, params: Any*)(con: Connection): Int = if(params.isEmpty){
     val stmt = con createStatement ()
 
-    stmt executeUpdate query
+    try{ stmt executeUpdate query } finally { stmt close () }
   }
   else{
-    val prepared = con prepareStatement (formatQuery(query, params: _*))
+    val prepared = con prepareStatement formatQuery(query, params: _*)
     val stmt = statement(prepared, params: _*)
 
-    stmt executeUpdate ()
+    try{ stmt executeUpdate () } finally { stmt close () }
   }
 
   /**
@@ -103,7 +113,7 @@ trait Queryable[DBType] {
    * @param params The query parameters
    * @param con A database connection object
    */
-  def delete(query: String, params: Any*)(con: Connection): Int = update(query, params: _*)(con)
+  @inline def delete(query: String, params: Any*)(con: Connection): Int = update(query, params: _*)(con)
 
   /**
    * Given a connection, a valid merge statement, and an optional list of parameters for that statement, executes the
@@ -113,7 +123,7 @@ trait Queryable[DBType] {
    * @param params The query parameters
    * @param con A database connection object
    */
-  def merge(query: String, params: Any*)(con: Connection): CloseableIterator[Int] = insert(query, params: _*)(con)
+  @inline def merge(query: String, params: Any*)(con: Connection): CloseableIterator[Int] = insert(query, params: _*)(con)
 
   protected[jdbc] val questionMark = Pattern.compile("""\?""")
   /**
