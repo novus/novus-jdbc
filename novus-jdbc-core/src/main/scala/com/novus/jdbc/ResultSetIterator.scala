@@ -1,45 +1,53 @@
 package com.novus.jdbc
 
-import java.sql.ResultSet
+import java.sql.{Statement, ResultSet}
 
 /**
- * Container class which lazily evaluates a JDBC ResultSet with the supplied function. Reorients the destructive nature
- * of ResultSet::next() with Iterator::next(). Auto-increments the ResultSet to the initial result from the DB.
+ * Container class which lazily evaluates a [[java.sql.ResultSet]] with the supplied function. Reorients the destructive
+ * nature of ResultSet#next with Iterator#next. Auto-increments the ResultSet to the initial result from the DB.
  * Requires a stateful change to accomplish these goals.
  */
-class ResultSetIterator[Res <: ResultSet, +A](result: Res, f: Res => A) extends Iterator[A] {
+class ResultSetIterator[Res <: ResultSet, +A](statement: Statement, result: Res, f: Res => A) extends CloseableIterator[A] {
   self =>
 
   private var canBeIncremented = result next ()
 
   override def hasNext = canBeIncremented
 
-  override def next() = {
+  override def next() = if(canBeIncremented){
     val output = f(result)
 
-    if (canBeIncremented) {
-      canBeIncremented = result next ()
-    }
-    else {
-      result.close()
-    }
+    canBeIncremented = result next ()
+    if (!canBeIncremented) close()
 
     output
   }
+  else Iterator.empty next()
 
-  override def slice(from: Int, to: Int) = new Iterator[A]{
+  override def slice(from: Int, to: Int) ={
     canBeIncremented = result relative (from)
+    if (!canBeIncremented) close()
 
-    private var until = to
+    new CloseableIterator[A]{
+      private var until = to
 
-    override def hasNext = self.hasNext
+      override def hasNext = self.hasNext && 0 <= until
 
-    override def next() = if(until > 0){
-      until -= 1
-      self.next()
+      override def next() = if(hasNext){
+        until -= 1
+        val output = self next ()
+        if(until < 0) close()
+        output
+      }
+      else Iterator.empty next ()
+
+      def close(){
+        self close ()
+      }
     }
-    else{
-      Iterator.empty.next()
-    }
+  }
+
+  def close(){
+    statement close ()
   }
 }

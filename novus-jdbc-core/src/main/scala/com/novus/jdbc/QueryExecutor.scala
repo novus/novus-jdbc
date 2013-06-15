@@ -4,21 +4,31 @@ import java.sql.Connection
 import org.slf4j.LoggerFactory
 
 /**
- * A simple mechanism for executing queries on a JDBC data source and transforming
- *  ResultSet instances into arbitrary types. Implementations must provide an
- *  execution strategy by implementing #managed.
+ * The container object for an underlying database connection pool. All queries are both timed and logged to an
+ * [[org.slf4j.Logger]] which must be configured to the actual logging framework. It is assumed, although not enforced
+ * at compile time, that all statements are DML queries. Implementations of `QueryExecutor` must define the #connection
+ * and the #shutdown methods.
  *
- *  Warning: Does not work properly with objects that can only be traversed once.
+ * @since 0.1
+ * @tparam DBType The database type
+ *
+ * @note Warning: Does not work properly with parameter objects that can only be traversed once.
  */
 trait QueryExecutor[DBType] {
-  val log = LoggerFactory.getLogger(this.getClass)
+  val log = LoggerFactory getLogger this.getClass
+
+  /** Obtain a connection from the underlying connection pool */
+  protected def connection(): Connection
 
   /**
-   * Execute some function requiring a connection, performing whatever management
-   *  is necessary (eg ARM / loaner).
+   * Responsible for obtaining and returning a DB connection from the connection pool to execute the given query
+   * function.
+   *
+   * @param q The query statement
+   * @param params The query parameters
+   * @param f Any one of the select, update, delete or merge commands
+   * @tparam T The return type of the query
    */
-  protected def managed[A](f: Connection => A): A
-
   final protected def execute[T](q: String, params: Any*)(f: Connection => T): T ={
     val msg = """
       QUERY:  %s
@@ -26,61 +36,114 @@ trait QueryExecutor[DBType] {
     """ format (q, params mkString (", "))
 
     val now = System.currentTimeMillis
-    val output = managed(f)
-    val later = System.currentTimeMillis
+    val con = connection()
+    try {
+      val output = f(con)
+      val later = System.currentTimeMillis
 
-    log info ("Timed: {} timed for {} ms", msg, later - now)
+      log info ("Timed: {} timed for {} ms", msg, later - now)
 
-    output
+      output
+    }
+    catch {
+      case ex: NullPointerException => log error ("{} pool object returned a null connection", this); throw ex
+      case ex: Exception            => log error ("{}, threw exception" format this, ex); throw ex
+    }
+    finally {
+      if (con != null) con close ()
+    }
   }
 
   /** Returns an iterator containing update counts. */
   final def executeBatch[I <: Seq[Any]](batchSize: Int = 1000)(q: String, params: Iterator[I])(implicit query: Queryable[DBType]): Iterator[Int] =
-    execute(q, params) { con => query.executeBatch(batchSize)(con, q, params) }
+    execute(q, params) { query.executeBatch(batchSize)(q, params) }
 
-  /** Execute a query and transform only the head of the ResultSet. */
-  final def selectOne[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType], wrapper: ResultSetWrapper[DBType]): Option[T] = {
-    val rs = execute(q, params: _*) { con => query execute (con, q, params: _*) }
+  /**
+   * Execute a query and transform only the head of the `RichResultSet`. If this query would produce multiple results,
+   * they are lost.
+   *
+   * @param q The query statement
+   * @param params The query parameters
+   * @param f A transform from a `RichResultSet` to a type `T`
+   * @tparam T The returned type from the query
+   */
+  final def selectOne[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): Option[T] = {
+    val (stmt, rs) = execute(q, params: _*) { query execute (q, params: _*) }
 
-    val out = if (rs next ()) {
-      Some(f(wrapper wrap (rs)))
+    try{
+      if (rs next ()) {
+        Some(f(rs))
+      }
+      else {
+        None
+      }
     }
-    else {
-      None
+    finally{
+      stmt close ()
     }
-    rs close ()
-
-    out
   }
 
   /**
-   * Execute a query and yield an Iterator[T] which, as consumed, will progress through the ResultSet and lazily
-   * transform each member.
+   * Execute a query and yield a [[com.novus.jdbc.CloseableIterator]] which, as consumed, will progress through the
+   * underlying `RichResultSet` and lazily evaluate the argument function.
+   *
+   * @param q The query statement
+   * @param params The query parameters
+   * @param f A transform from a `RichResultSet` to a type `T`
+   * @tparam T The returned type from the query
    */
-  final def select[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType], wrapper: ResultSetWrapper[DBType]): Iterator[T] = {
-    val rs = execute(q, params: _*) { con => query execute (con, q, params: _*) }
+  final def select[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] = {
+    val (stmt, rs) = execute(q, params: _*) { query execute (q, params: _*) }
 
-    new ResultSetIterator(wrapper wrap rs, f)
+    new ResultSetIterator(stmt, rs, f)
   }
 
-  /** 'Cause sometimes you just want a List of the transformed ResultSet. */
-  final def eagerlySelect[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType], wrapper: ResultSetWrapper[DBType]): List[T] =
-    select(q, params: _*)(f)(query, wrapper).toList
+  /**
+   * Eagerly evaluates the argument function against the returned `RichResultSet`.
+   *
+   * @see #select
+   */
+  final def eagerlySelect[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): List[T] =
+    select(q, params: _*)(f)(query).toList
 
-  /** Returns an iterator containing the ID column which was inserted. */
-  final def insert(q: String, params: Any*)(implicit query: Queryable[DBType]): Iterator[Int] =
-    execute(q, params: _*) { con => query insert (con, q, params: _*) }
+  /**
+   * Returns an iterator containing the ID column of the rows which were inserted by this insert statement.
+   *
+   * @param q The query statement
+   * @param params The query parameters
+   */
+  final def insert(q: String, params: Any*)(implicit query: Queryable[DBType]): CloseableIterator[Int] =
+    execute(q, params: _*) { query insert (q, params: _*) }
 
   /**
    * Returns the row count updated by this SQL statement. If the SQL statement is not a row update operation, such as a
    * DDL statement, then a 0 is returned.
+   *
+   * @param q The query statement
+   * @param params The query parameters
    */
   final def update(q: String, params: Any*)(implicit query: Queryable[DBType]): Int =
-    execute(q, params: _*) { con => query update (con, q, params: _*) }
+    execute(q, params: _*) { query update (q, params: _*) }
 
-  /** Returns the row count deleted by this SQL statement. */
+  /**
+   * Returns the row count deleted by this SQL statement.
+   *
+   * @param q The query statement
+   * @param params The query parameters
+   */
   final def delete(q: String, params: Any*)(implicit query: Queryable[DBType]): Int =
-    execute(q, params: _*) { con => query delete (con, q, params: _*) }
+    execute(q, params: _*) { query delete (q, params: _*) }
+
+  /**
+   * Returns an iterator containing the ID column which was inserted as a result of the merge statement. If this merge
+   * statement does not cause an insertion into a table generating new IDs, the iterator returns empty. It is suggested
+   * that update be used in the case where row counts affected is preferable to IDs.
+   *
+   * @param q The query statement
+   * @param params The query parameters
+   */
+  final def merge(q: String, params: Any*)(implicit query: Queryable[DBType]): CloseableIterator[Int] =
+    execute(q, params: _*) { query merge (q, params: _*) }
 
   /** Shuts down the underlying connection pool. Should be called before this object is garbage collected. */
   def shutdown()
