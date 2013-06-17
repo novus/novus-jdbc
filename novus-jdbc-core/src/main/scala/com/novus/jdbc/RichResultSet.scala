@@ -1,21 +1,15 @@
-
 package com.novus.jdbc
 
 import java.sql.{ResultSet, Date, Time, Timestamp, SQLWarning, ResultSetMetaData, Statement, Ref, RowId, Blob, Clob, NClob, SQLXML}
 import org.joda.time.DateTime
 import java.io.{InputStream, Reader}
 import java.net.URL
-import java.util.Calendar
-import java.util
+import java.util.{Calendar, Map => JMap}
 import java.math.BigDecimal
 import org.joda.time.format.DateTimeFormat
 
-trait ResultSetWrapper[DBType]{
-  def wrap(row: ResultSet): RichResultSet
-}
-
 //This is where a Scala 2.10 Value Type would come in handy.
-abstract class RichResultSet(row: ResultSet) extends ResultSet{
+class RichResultSet(row: ResultSet) extends ResultSet{
   def getDouble(column: String): Double = checkNaN(row getDouble (column), java.lang.Double.NaN)
   def getDouble(column: Int): Double = checkNaN(row getDouble (column), java.lang.Double.NaN)
 
@@ -37,28 +31,13 @@ abstract class RichResultSet(row: ResultSet) extends ResultSet{
   def getFloat_?(column: String): Option[Float] = wasNull(row getFloat (column))
   def getFloat_?(column: Int): Option[Float] = wasNull(row getFloat (column))
 
-  def getDateTime(column: String): DateTime ={
-    val date = row getTimestamp (column)
+  def getDateTime(column: String): DateTime = parseDate(row getTimestamp column)
+  def getDateTime(column: Int): DateTime = parseDate(row getTimestamp column)
 
-    if(date == null) null else RichResultSet parseTimeStamp (date)
-  }
+  def getDateTime(column: String, cal: Calendar): DateTime = parseDate(row getTimestamp (column, cal))
+  def getDateTime(column: Int, cal: Calendar): DateTime = parseDate(row getTimestamp (column, cal))
 
-  def getDateTime(column: Int): DateTime ={
-    val date = row getTimestamp (column)
-
-    if(date == null) null else RichResultSet parseTimeStamp (date)
-  }
-
-  def getDateTime(column: String, cal: Calendar): DateTime ={
-    val date = row getTimestamp (column, cal)
-
-    if(date == null) null else RichResultSet parseTimeStamp (date)
-  }
-  def getDateTime(column: Int, cal: Calendar): DateTime ={
-    val date = row getTimestamp (column, cal)
-
-    if(date == null) null else RichResultSet parseTimeStamp (date)
-  }
+  protected def parseDate(date: Timestamp) = if(date == null) null else RichResultSet parseTimeStamp (date)
 
   def getDateTime_?(column: String): Option[DateTime] = wasNull(getDateTime (column))
   def getDateTime_?(column: Int): Option[DateTime] = wasNull(getDateTime (column))
@@ -340,12 +319,14 @@ abstract class RichResultSet(row: ResultSet) extends ResultSet{
   }
 
   def getStatement: Statement = row getStatement
-  def getObject(columnIndex: Int, map: util.Map[String, Class[_]]): AnyRef = row getObject(columnIndex, map)
+  def getObject(columnIndex: Int, map: JMap[String, Class[_]]): AnyRef = row getObject (columnIndex, map)
+  def getObject(columnLabel: String, map: JMap[String, Class[_]]): AnyRef = row getObject (columnLabel, map)
+  def getObject[T](columnIndex: Int, clazz: Class[T]): T = row getObject (columnIndex, clazz)
+  def getObject[T](columnLabel: String, clazz: Class[T]): T = row getObject (columnLabel, clazz)
   def getRef(columnIndex: Int) = row getRef (columnIndex)
   def getBlob(columnIndex: Int) = row getBlob (columnIndex)
   def getClob(columnIndex: Int) = row getClob (columnIndex)
   def getArray(columnIndex: Int) = row getArray (columnIndex)
-  def getObject(columnLabel: String, map: util.Map[String, Class[_]]): AnyRef = row getObject (columnLabel, map)
   def getRef(columnLabel: String) = row getRef (columnLabel)
   def getBlob(columnLabel: String) = row getBlob (columnLabel)
   def getClob(columnLabel: String) = row getClob (columnLabel)

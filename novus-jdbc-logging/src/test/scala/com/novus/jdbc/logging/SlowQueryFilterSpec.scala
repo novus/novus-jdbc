@@ -1,7 +1,6 @@
 package com.novus.jdbc.logging
 
 import org.specs2.mutable.Specification
-import com.novus.jdbc.logging.SlowQueryFilter
 
 class SlowQueryFilterSpec extends Specification{
   "parseTime" should{

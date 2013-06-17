@@ -1,13 +1,17 @@
 import sbt._
 import Keys._
+import sbtassembly.Plugin._
+import AssemblyKeys._
 
 object NovusjdbcBuild extends sbt.Build {
+
+  artifact in (Compile, assembly) ~= { _.copy(`classifier` = Some("assembly")) }
 
   lazy val root = Project(
     id = "novus-jdbc",
     base = file("."),
     settings = baseSettings
-  ).aggregate(novusJdbc, novusJdbcBonecp, novusJdbcLogging)
+  ).aggregate(novusJdbc, novusJdbcBonecp, novusJdbcDBCP, novusJdbcC3P0, novusJdbcTomcat, novusJdbcLogging)
   
   lazy val novusJdbc = Project(
     id = "novus-jdbc-core",
@@ -17,16 +21,40 @@ object NovusjdbcBuild extends sbt.Build {
         "net.sourceforge.jtds" % "jtds" % "1.2.6",
         "org.slf4j" % "slf4j-api" % "1.7.2",
         "joda-time" % "joda-time" % "2.1",
-        "org.joda" % "joda-convert" % "1.2" % "compile"
+        "org.joda" % "joda-convert" % "1.2" % "compile",
+        "org.hsqldb" % "hsqldb" % "2.2.9" % "test"
     ) ++ Shared.specsDep(v))))
 
   lazy val novusJdbcBonecp = Project(
     id = "novus-jdbc-bonecp",
     base = file("novus-jdbc-bonecp"),
     settings = baseSettings ++ Seq(libraryDependencies <++= scalaVersion (v => Seq(
-        "com.jolbox" % "bonecp" % "0.7.1.RELEASE",
-        "org.slf4j" % "slf4j-api" % "1.7.2"
-    ) ++ Shared.specsDep(v))))
+        "com.jolbox" % "bonecp" % "0.7.1.RELEASE"
+    ))))
+    .dependsOn(novusJdbc)
+
+  lazy val novusJdbcDBCP = Project(
+    id = "novus-jdbc-dbcp",
+    base = file("novus-jdbc-dbcp"),
+    settings = baseSettings ++Seq(libraryDependencies <++= scalaVersion (v => Seq(
+      "commons-dbcp" % "commons-dbcp" % "1.4"
+    ))))
+    .dependsOn(novusJdbc)
+
+  lazy val novusJdbcC3P0 = Project(
+    id = "novus-jdbc-c3p0",
+    base = file("novus-jdbc-c3p0"),
+    settings = baseSettings ++ Seq(libraryDependencies <++= scalaVersion (v => Seq(
+      "c3p0" % "c3p0" % "0.9.1.2" //technically 0.9.2 is latest but need to download it
+    ))))
+    .dependsOn(novusJdbc)
+
+  lazy val novusJdbcTomcat = Project(
+    id = "novus-jdbc-tomcat",
+    base = file("novus-jdbc-tomcat"),
+    settings = baseSettings ++ Seq(libraryDependencies <++= scalaVersion (v => Seq(
+      "org.apache.tomcat" % "tomcat-jdbc" % "7.0.37"
+    ))))
     .dependsOn(novusJdbc)
 
   lazy val novusJdbcLogging = Project(
@@ -38,7 +66,7 @@ object NovusjdbcBuild extends sbt.Build {
 
   lazy val baseSettings = Project.defaultSettings ++ Seq(
     organization := "com.novus",
-    version := "0.7.1-SNAPSHOT",
+    version := "0.9.0-SNAPSHOT",
     scalaVersion := "2.9.2",
     crossScalaVersions := Seq("2.8.1", "2.9.0", "2.9.0-1", "2.9.1"),
     initialCommands := "import com.novus.jdbc._",
@@ -52,7 +80,7 @@ object NovusjdbcBuild extends sbt.Build {
       val sfx = if(version.trim.endsWith("SNAPSHOT")) "snapshots" else "releases"
       val nexus = "https://nexus.novus.com:65443/nexus/content/repositories/"
       Some("Novus " + sfx at nexus + sfx + "/")
-    })
+    }) ++ assemblySettings
 }
 
 object Shared {
@@ -69,6 +97,7 @@ object Shared {
       case "2" :: "9" :: "0" :: _ => "org.specs2" % "specs2_2.9.1" % "1.7.1" :: mockito :: Nil
       case "2" :: "9" :: _ :: _ => "org.specs2" % "specs2_2.9.1" % "1.8.2" :: mockito :: Nil
       //case "2" :: "9" :: "2" :: _ => "org.specs2" % "specs2_2.9.2" % "1.13" :: mockito :: Nil
+      //case "2" :: "10" :: _ => "org.specs2" % "specs2_2.10" % "1.14" :: mockito :: Nil
       case _ => sys.error("Specs not supported for scala version %s" format sv)
     }) map (_ % cfg)
   
