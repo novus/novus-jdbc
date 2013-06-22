@@ -470,4 +470,15 @@ class CloseableIteratorSpec extends Specification with Mockito{
         (cnt must be greaterThan 0)
     }
   }
+
+  "sliding" should{
+    "call close after all elements have been traversed" in{
+      var cnt = 0
+      val iter0 = counter(() => cnt += 1)
+      val iter = iter0 sliding 2
+
+      (iter must haveSize(3)) and
+        (cnt must be greaterThan 0)
+    }
+  }
 }

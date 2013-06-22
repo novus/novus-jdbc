@@ -3,13 +3,10 @@ package com.novus.jdbc
 import collection.{Iterator, GenTraversableOnce}
 import annotation.tailrec
 
-//TODO: sliding, grouped
-
 /**
- * An abstract class for an iterator that holds onto an underlying resource which must be released upon consumption. It
- * contains implementations common to `Iterator` defined nearly identical to standard but with resource management. It
- * is recommended that users of `CloseableIterator` take precautions to guarantee that the resource is explicitly
- * released.
+ * A trait for an iterator that holds onto an underlying resource which must be released upon consumption. It contains
+ * implementations common to `Iterator` defined nearly identical to standard but with resource management. It is
+ * recommended that users of `CloseableIterator` take precautions to guarantee that the resource is explicitly released.
  *
  * @since 0.9
  * @tparam A the element type of the collection
@@ -33,7 +30,7 @@ import annotation.tailrec
  * The underlying resource may be released, leading to unexpected exception and errors if an attempt is made to use the
  * iterator again.
  */
-abstract class CloseableIterator[+A] extends Iterator[A]{
+trait CloseableIterator[+A] extends Iterator[A]{
   self =>
 
   /**
@@ -68,9 +65,14 @@ abstract class CloseableIterator[+A] extends Iterator[A]{
     }
   }
 
-//  override def sliding[B >: A](size: Int, step: Int = 1): GroupedIterator[B] = toList.toIterator.sliding(size, step)
-//
-//  override def grouped[B >: A](size: Int) = toIterator.grouped(size)
+  //Using the super.Foo trick to override the basic definition of Iterator's GroupedIterator
+  class GroupedIterator[B >: A](size: Int, step: Int) extends super.GroupedIterator[B](this, size, step)
+    with CloseableIterator[Seq[B]] {
+
+    def close(){
+      self close ()
+    }
+  }
 
   /**
    * Creates a new iterator that maps all produced values of this iterator to new values using a transformation
