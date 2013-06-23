@@ -33,9 +33,10 @@ class CloseableIteratorSpec extends Specification with Mockito{
       cnt must be greaterThan 0
     }
     "only call close once from indirect calls" in{
+      val it = Iterator(1,2,3,4)
       val mocked = mock[CloseableIterator[Int]]
-      mocked.hasNext returns(true, true, true, true, false)
-      mocked.next() returns(1, 1, -1, 3)
+      mocked.hasNext answers{ _ => it.hasNext }
+      mocked.next() answers{ _ => it next () }
 
       val iter = new CloseableIterator[Int] {
         def hasNext = mocked.hasNext
@@ -478,6 +479,57 @@ class CloseableIteratorSpec extends Specification with Mockito{
       val iter = iter0 sliding 2
 
       (iter must haveSize(3)) and
+        (cnt must be greaterThan 0)
+    }
+    "work with an empty iterator" in{
+      val iter0 = nonCounter(Iterator.empty)
+      val iter = iter0 sliding 4
+
+      (iter must haveSize(0))
+    }
+  }
+
+  "grouped" should{
+    "call close after all elements have been traversed" in{
+      var cnt = 0
+      val iter0 = counter(() => cnt += 1)
+      val iter = iter0 grouped 4
+
+      (iter must haveSize(1)) and
+        (cnt must be greaterThan 0)
+    }
+    "segregate into expected groupings" in{
+      var cnt = 0
+      val iter0 = counter(() => cnt += 1)
+      val iter = iter0 grouped 3
+
+      iter must haveSize(2)
+    }
+    "handle empty iterators" in{
+      val iter = nonCounter(Iterator.empty)
+
+      iter must beEmpty
+    }
+  }
+
+  "buffered" should{
+    "handle empty iterators" in{
+      val iter = nonCounter(Iterator.empty)
+
+      iter.buffered must beEmpty
+    }
+    "throw an exception when head requested after exhaustion" in{
+      val iter = nonCounter()
+      val buffered = iter.buffered
+      buffered.length
+      buffered.head must throwA(new NoSuchElementException("next on empty iterator"))
+    }
+    "call close after all elements traversed" in{
+      var cnt = 0
+      val iter0 = counter(() => cnt += 1)
+      val buffered = iter0.buffered
+
+      (buffered must haveSize(4)) and
         (cnt must be greaterThan 0)
     }
   }

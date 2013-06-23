@@ -126,7 +126,7 @@ trait CloseableIterator[+A] extends Iterator[A]{
    */
   override def filter(pred: A => Boolean) = new CloseableIterator[A] {
     private var hd: A = _
-    private var hdDefined = !self.hasNext
+    private var hdDefined = false
 
     def hasNext = {
       while(!hdDefined && self.hasNext) {
@@ -138,9 +138,8 @@ trait CloseableIterator[+A] extends Iterator[A]{
     }
 
     def next() = if (hasNext){
-      val output = hd
       hdDefined = false
-      output
+      hd
     }
     else Iterator.empty.next()
 
@@ -198,7 +197,7 @@ trait CloseableIterator[+A] extends Iterator[A]{
       override def next() = if(hasNext){
         until -= 1
         val output = self next ()
-        if(until < 0 || !self.hasNext) close()
+        if(!hasNext) close()
         output
       }
       else Iterator.empty next ()
