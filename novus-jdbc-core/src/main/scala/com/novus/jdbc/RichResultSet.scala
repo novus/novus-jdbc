@@ -19,6 +19,9 @@ class RichResultSet(row: ResultSet) extends ResultSet{
   def getInt_?(column: String): Option[Int] = wasNull(row getInt (column))
   def getInt_?(column: Int): Option[Int] = wasNull(row getInt (column))
 
+  def getShort_?(column: String): Option[Short] = wasNull(row getShort column)
+  def getShort_?(column: Int): Option[Short] = wasNull(row getShort column)
+
   def getLong_?(column: String): Option[Long] = wasNull(row getLong (column))
   def getLong_?(column: Int): Option[Long] = wasNull(row getLong (column))
 
