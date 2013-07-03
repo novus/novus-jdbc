@@ -29,9 +29,14 @@ trait Queryable[DBType] {
    */
   def select(query: String, params: Any*)(con: Connection): (Statement, RichResultSet) = {
     val prepared = con prepareStatement formatQuery(query, params: _*)
-    val stmt = statement(prepared, params: _*)
+    try{
+      statement(prepared, params: _*)
 
-    (stmt, wrap(stmt executeQuery ()))
+      (prepared, wrap(prepared executeQuery ()))
+    }
+    catch{
+      case ex => prepared close (); throw ex
+    }
   }
 
   /**
@@ -43,8 +48,12 @@ trait Queryable[DBType] {
    */
   def select(query: String)(con: Connection): (Statement, RichResultSet) = {
     val stmt = con createStatement ()
-
-    (stmt, wrap(stmt executeQuery query))
+    try{
+      (stmt, wrap(stmt executeQuery query))
+    }
+    catch{
+      case ex => stmt close (); throw ex
+    }
   }
 
   /**
@@ -80,10 +89,14 @@ trait Queryable[DBType] {
    */
   def insert(query: String, params: Any*)(con: Connection): CloseableIterator[Int] = {
     val prepared = con prepareStatement (query, Statement.RETURN_GENERATED_KEYS)
-    val stmt = statement(prepared, params: _*)
-    stmt executeUpdate ()
+    try{
+      statement(prepared, params: _*) executeUpdate ()
 
-    new ResultSetIterator[ResultSet,Int](stmt, stmt.getGeneratedKeys, _ getInt 1) //compiler can't deduce the types...
+      new ResultSetIterator[ResultSet,Int](prepared, prepared.getGeneratedKeys, _ getInt 1) //compiler can't deduce the types...
+    }
+    catch{
+      case ex => prepared close (); throw ex
+    }
   }
 
   /**
@@ -95,9 +108,14 @@ trait Queryable[DBType] {
    */
   def insert(query: String)(con: Connection): CloseableIterator[Int] = {
     val stmt = con createStatement ()
-    stmt executeUpdate (query, Statement.RETURN_GENERATED_KEYS)
+    try{
+      stmt executeUpdate (query, Statement.RETURN_GENERATED_KEYS)
 
-    new ResultSetIterator[ResultSet,Int](stmt, stmt.getGeneratedKeys, _ getInt 1) //compiler can't deduce the types...
+      new ResultSetIterator[ResultSet,Int](stmt, stmt.getGeneratedKeys, _ getInt 1) //compiler can't deduce the types...
+    }
+    catch{
+      case ex => stmt close (); throw ex
+    }
   }
 
   /**
@@ -110,9 +128,12 @@ trait Queryable[DBType] {
    */
   def update(query: String, params: Any*)(con: Connection): Int = {
     val prepared = con prepareStatement formatQuery(query, params: _*)
-    val stmt = statement(prepared, params: _*)
-
-    try{ stmt executeUpdate () } finally { stmt close () }
+    try{
+      statement(prepared, params: _*) executeUpdate ()
+    }
+    finally {
+      prepared close ()
+    }
   }
 
   /**
@@ -124,8 +145,12 @@ trait Queryable[DBType] {
    */
   def update(query: String)(con: Connection): Int = {
     val stmt = con createStatement ()
-
-    try{ stmt executeUpdate query } finally { stmt close () }
+    try{
+      stmt executeUpdate query
+    }
+    finally {
+      stmt close ()
+    }
   }
 
   /**
@@ -175,14 +200,8 @@ trait Queryable[DBType] {
    * @param query The query string
    * @param params The query parameters
    */
-  final protected[jdbc] def formatQuery(query: String, params: Any*): String = {
-    if (params exists (_.isInstanceOf[Iterable[_]])) {
-      replace(params.toList, questionMark matcher query)
-    }
-    else {
-      query
-    }
-  }
+  final protected[jdbc] def formatQuery(query: String, params: Any*): String =
+    if (params exists (_.isInstanceOf[Iterable[_]])) replace(params.toList, questionMark matcher query) else query
 
   /**
    * Parses the parameter list and substitutes a list '?' for each parameter which is an instance of an
@@ -211,6 +230,12 @@ trait Queryable[DBType] {
   /**
    * Places the query params into the PreparedStatement. In the case of instances of [[scala.collection.Iterable]],
    * inserts each contained item into the statement individually.
+   *
+   * @param stmt The `PreparedStatement` to modify
+   * @param params The list of parameter objects
+   *
+   * @note This works via side-effect due to the underlying nature of the Java JDBC API. The return of the statement is
+   *       merely for chaining method calls.
    */
   protected[jdbc] def statement(stmt: PreparedStatement, params: Any*): PreparedStatement = {
     var i = 1

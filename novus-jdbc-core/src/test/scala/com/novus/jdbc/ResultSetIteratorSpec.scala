@@ -8,9 +8,8 @@ import java.sql.{Statement, SQLException, ResultSet}
 class ResultSetIteratorSpec extends Specification with Mockito{
 
   "ResultSetIterator" should{
-    val statement = mock[Statement]
-
     "allow toList to work without error" in{
+      val statement = mock[Statement]
       val mocked = mock[ResultSet]
 
       mocked getString("yo") returns "hey" thenThrows (new SQLException())
@@ -21,6 +20,7 @@ class ResultSetIteratorSpec extends Specification with Mockito{
       iter.toList must haveSize(1)
     }
     "toList closes the connection" in{
+      val statement = mock[Statement]
       val mocked = mock[ResultSet]
 
       mocked getString("yo") returns "hey" thenThrows (new NoSuchElementException("next on empty iterator"))

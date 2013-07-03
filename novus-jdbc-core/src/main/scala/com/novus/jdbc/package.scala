@@ -4,6 +4,9 @@ object `package`{
   import com.novus.jdbc.sqlserver._
   import com.novus.jdbc.hsql._
 
+  type SqlServer = com.novus.jdbc.sqlserver.SqlServer
+  type HSQL = com.novus.jdbc.hsql.HSQL
+
   /**
    * Helper method to ensure that `close` is called after using a `CloseableIterator` within a function.
    *
