@@ -133,5 +133,143 @@ class QueryableSpec extends Specification with Mockito{
       (richset must beAnInstanceOf[RichResultSet]) and
         (there was two(prepared).setObject(anyInt,any))
     }
+    "close a statement if an exception is thrown" in {
+      val query = "SELECT 1 FROM foo WHERE v = ? AND p = ?"
+
+      val resultset = mock[ResultSet]
+      val prepared = mock[PreparedStatement]
+      prepared executeQuery() returns resultset
+      prepared setObject(anyInt,any) throws (new SQLException())
+
+      val con = mock[Connection]
+      con prepareStatement(anyString) returns prepared
+
+      (able.select(query, 1, 2, 3)(con) must throwA[SQLException]) and
+        (there was one(prepared).close())
+    }
+    "close a statement if an exception is thrown" in {
+      val query = "SELECT 1 FROM foo"
+
+      val statement = mock[Statement]
+      statement executeQuery(anyString) throws (new SQLException())
+      val con = mock[Connection]
+      con createStatement() returns statement
+
+      (able.select(query)(con) must throwA[SQLException]) and
+        (there was one(statement).close())
+    }
+  }
+
+  "insert" should {
+    "produce a statement and a result set with no query parameters" in {
+      val query = "INSERT INTO foo VALUES(1)"
+
+      val resultset = mock[ResultSet]
+      val stmt = mock[Statement]
+      stmt executeUpdate(anyString) returns 1
+      stmt getGeneratedKeys() returns resultset
+
+      val con = mock[Connection]
+      con createStatement() returns stmt
+
+      val iter = able.insert(query)(con)
+
+      (iter must beAnInstanceOf[CloseableIterator[Int]]) and
+        (there was no(con).prepareStatement(query))
+    }
+    "produce a statement and a result set with query parameters" in {
+      val query = "INSERT INTO foo VALUES(?)"
+
+      val resultset = mock[ResultSet]
+      val prepared = mock[PreparedStatement]
+      prepared executeUpdate() returns 1
+      prepared setObject(anyInt,any) answers(_ => Unit)
+      prepared getGeneratedKeys() returns resultset
+
+      val con = mock[Connection]
+      con prepareStatement(anyString,anyInt) returns prepared
+
+      val iter = able.insert(query, 1)(con)
+      (iter must beAnInstanceOf[CloseableIterator[Int]]) and
+        (there was one(prepared).setObject(anyInt,any))
+    }
+    "close a statement if an exception is thrown" in {
+      val query = "INSERT INTO foo VALUES(?,?)"
+
+      val resultset = mock[ResultSet]
+      val prepared = mock[PreparedStatement]
+      prepared executeQuery() returns resultset
+      prepared setObject(anyInt,any) throws (new SQLException())
+
+      val con = mock[Connection]
+      con prepareStatement(anyString, anyInt) returns prepared
+
+      (able.insert(query, 1, 2)(con) must throwA[SQLException]) and
+        (there was one(prepared).close())
+    }
+    "close a statement if an exception is thrown" in {
+      val query = "INSERT INTO foo VALUES(1)"
+
+      val statement = mock[Statement]
+      statement executeUpdate(anyString,anyInt) throws (new SQLException())
+      val con = mock[Connection]
+      con createStatement() returns statement
+
+      (able.insert(query)(con) must throwA[SQLException]) and
+        (there was one(statement).close())
+    }
+  }
+
+  "update" should {
+    "produce an updated count with no query parameters" in {
+      val query = "UPDATE foo SET bar=1"
+
+      val stmt = mock[Statement]
+      stmt executeUpdate(anyString) returns 1
+
+      val con = mock[Connection]
+      con createStatement() returns stmt
+
+      (able.update(query)(con) must be equalTo 1) and
+        (there was one(stmt).close())
+    }
+    "produce an updated count with query parameters" in {
+      val query = "UPDATE foo SET bar=?"
+
+      val prepared = mock[PreparedStatement]
+      prepared executeUpdate() returns 1
+      prepared setObject(anyInt,any) answers(_ => Unit)
+
+      val con = mock[Connection]
+      con prepareStatement(anyString) returns prepared
+
+      (able.update(query, 1)(con) must be equalTo 1) and
+        (there was one(prepared).setObject(anyInt,any)) and
+        (there was one(prepared).close())
+    }
+    "close a statement if an exception is thrown" in {
+      val query = "UPDATE foo SET bar=?"
+
+      val prepared = mock[PreparedStatement]
+      prepared executeUpdate() returns 1
+      prepared setObject(anyInt,any) throws (new SQLException())
+
+      val con = mock[Connection]
+      con prepareStatement(anyString) returns prepared
+
+      (able.update(query, 1)(con) must throwA[SQLException]) and
+        (there was one(prepared).close())
+    }
+    "close a statement if an exception is thrown" in {
+      val query = "UPDATE foo SET bar=1"
+
+      val statement = mock[Statement]
+      statement executeUpdate(anyString) throws (new SQLException())
+      val con = mock[Connection]
+      con createStatement() returns statement
+
+      (able.update(query)(con) must throwA[SQLException]) and
+        (there was one(statement).close())
+    }
   }
 }
