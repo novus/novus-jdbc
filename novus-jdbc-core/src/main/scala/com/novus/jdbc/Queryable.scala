@@ -2,7 +2,7 @@ package com.novus.jdbc
 
 import java.util.regex.{ Matcher, Pattern }
 import annotation.tailrec
-import java.sql._
+import java.sql.{Connection, Statement, ResultSet, PreparedStatement, SQLException, Types}
 import java.io.{ Reader, InputStream }
 
 /**
@@ -100,6 +100,48 @@ trait Queryable[DBType] {
   }
 
   /**
+   * Given a connection, an array of column indexes of a compound auto generated key, an insert statement, and a list of
+   * parameters for that statement, executes the insertion against the database and returns a JDBC ResultSet.
+   *
+   * @param columns The index of each compound key column
+   * @param query The query string
+   * @param params The query parameters
+   * @param con A database connection object
+   */
+  def insert(columns: Array[Int], query: String, params: Any*)(con: Connection): (Statement, RichResultSet) ={
+    val prepared = con prepareStatement (query, columns)
+    try{
+      statement(prepared, params: _*) executeUpdate ()
+
+      (prepared, wrap(prepared.getGeneratedKeys))
+    }
+    catch{
+      case ex => prepared close (); throw ex
+    }
+  }
+
+  /**
+   * Given a connection, an array of column names of a compound auto generated key, an insert statement, and a list of
+   * parameters for that statement, executes the insertion against the database and returns a JDBC ResultSet.
+   *
+   * @param columns The name of each compound key column
+   * @param query The query string
+   * @param params The query parameters
+   * @param con A database connection object
+   */
+  def insert(columns: Array[String], query: String, params: Any*)(con: Connection): (Statement, RichResultSet) ={
+    val prepared = con prepareStatement (query, columns)
+    try{
+      statement(prepared, params: _*) executeUpdate ()
+
+      (prepared, wrap(prepared.getGeneratedKeys))
+    }
+    catch{
+      case ex => prepared close (); throw ex
+    }
+  }
+
+  /**
    * Given a connection and an insert statement, executes the insertion against the database and returns an iterator of
    * IDs.
    *
@@ -112,6 +154,46 @@ trait Queryable[DBType] {
       stmt executeUpdate (query, Statement.RETURN_GENERATED_KEYS)
 
       new ResultSetIterator[ResultSet,Int](stmt, stmt.getGeneratedKeys, _ getInt 1) //compiler can't deduce the types...
+    }
+    catch{
+      case ex => stmt close (); throw ex
+    }
+  }
+
+  /**
+   * Given a connection, an array of column indexes of a compound auto generated key and an insert statement, executes
+   * the insertion against the database and returns a JDBC ResultSet.
+   *
+   * @param columns The array of column indexes
+   * @param query The query string
+   * @param con A database connection object
+   */
+  def insert(columns: Array[Int], query: String)(con: Connection): (Statement, RichResultSet) ={
+    val stmt = con createStatement ()
+    try{
+      stmt executeUpdate (query, columns)
+
+      (stmt, wrap(stmt.getGeneratedKeys))
+    }
+    catch{
+      case ex => stmt close (); throw ex
+    }
+  }
+
+  /**
+   * Given a connection, an array of column names of a compound auto generated key and an insert statement, executes
+   * the insertion against the database and returns a JDBC ResultSet.
+   *
+   * @param columns The array of column names
+   * @param query The query string
+   * @param con A database connection object
+   */
+  def insert(columns: Array[String], query: String)(con: Connection): (Statement, RichResultSet) ={
+    val stmt = con createStatement ()
+    try{
+      stmt executeUpdate (query, columns)
+
+      (stmt, wrap(stmt.getGeneratedKeys))
     }
     catch{
       case ex => stmt close (); throw ex

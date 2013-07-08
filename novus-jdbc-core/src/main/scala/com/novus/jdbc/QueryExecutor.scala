@@ -29,7 +29,7 @@ trait QueryExecutor[DBType] {
    * @param f Any one of the select, update, delete or merge commands
    * @tparam T The return type of the query
    */
-  final protected def execute[T](q: String, params: Any*)(f: Connection => T): T ={
+  @inline final protected def execute[T](q: String, params: Any*)(f: Connection => T): T ={
     val msg = """
       QUERY:  %s
       PARAMS: %s
@@ -46,7 +46,7 @@ trait QueryExecutor[DBType] {
    * @param f Any one of the select, update, delete or merge commands
    * @tparam T The return type of the query
    */
-  final protected def execute[T](q: String)(f: Connection => T): T ={
+  @inline final protected def execute[T](q: String)(f: Connection => T): T ={
     val msg = """
       QUERY:  %s
     """ format q
@@ -167,6 +167,11 @@ trait QueryExecutor[DBType] {
   final def eagerlySelect[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): List[T] =
     select(q, params: _*)(f)(query).toList
 
+  /**
+   * Eagerly evaluates the argument function against the returned `RichResultSet`.
+   *
+   * @see #select
+   */
   final def eagerlySelect[T](q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): List[T] =
     select(q)(f)(query).toList
 
@@ -180,11 +185,69 @@ trait QueryExecutor[DBType] {
     execute(q, params: _*) { query insert (q, params: _*) }
 
   /**
+   * Returns an iterator containing the compound index column of the rows which were inserted by this insert statement.
+   *
+   * @param columns The index of each column which represents the auto generated key
+   * @param q The query statement
+   * @param params The query parameters
+   * @param f A transform from a `RichResultSet` to a type `T`
+   * @tparam T The return type of the query
+   */
+  final def insert[T](columns: Array[Int], q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] = {
+    val (stmt, rs) = execute(q, params: _*){ query insert (columns, q, params: _*) }
+
+    new ResultSetIterator(stmt, rs, f)
+  }
+
+  /**
+   * Returns an iterator containing the compound index column of the rows which were inserted by this insert statement.
+   *
+   * @param columns The index of each column which represents the auto generated key
+   * @param q The query statement
+   * @param params The query parameters
+   * @param f A transform from a `RichResultSet` to a type `T`
+   * @tparam T The return type of the query
+   */
+  final def insert[T](columns: Array[String], q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] = {
+    val (stmt, rs) = execute(q, params: _*){ query insert (columns, q, params: _*) }
+
+    new ResultSetIterator(stmt, rs, f)
+  }
+
+  /**
    * Returns an iterator containing the ID column of the rows which were inserted by this insert statement.
    *
    * @param q The query statement
    */
   final def insert(q: String)(implicit query: Queryable[DBType]): CloseableIterator[Int] = execute(q) { query insert q }
+
+  /**
+   * Returns an iterator containing the compound index column of the rows which were inserted by this insert statement.
+   *
+   * @param columns The index of each column which represents the auto generated key
+   * @param q The query statement
+   * @param f A transform from a `RichResultSet` to a type `T`
+   * @tparam T The return type of the query
+   */
+  final def insert[T](columns: Array[Int], q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] = {
+    val (stmt, rs) = execute(q){ query insert (columns, q) }
+
+    new ResultSetIterator(stmt, rs, f)
+  }
+
+  /**
+   * Returns an iterator containing the compound index column of the rows which were inserted by this insert statement.
+   *
+   * @param columns The index of each column which represents the auto generated key
+   * @param q The query statement
+   * @param f A transform from a `RichResultSet` to a type `T`
+   * @tparam T The return type of the query
+   */
+  final def insert[T](columns: Array[String], q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] = {
+    val (stmt, rs) = execute(q){ query insert (columns, q) }
+
+    new ResultSetIterator(stmt, rs, f)
+  }
 
   /**
    * Returns the row count updated by this SQL statement. If the SQL statement is not a row update operation, such as a

@@ -2,7 +2,7 @@ package com.novus.jdbc
 
 import org.specs2.mutable.Specification
 import org.specs2.mock.Mockito
-import java.sql._
+import java.sql.{Connection, Statement, ResultSet, PreparedStatement, SQLException, Types}
 
 class QueryableSpec extends Specification with Mockito{
 
@@ -177,6 +177,22 @@ class QueryableSpec extends Specification with Mockito{
       (iter must beAnInstanceOf[CloseableIterator[Int]]) and
         (there was no(con).prepareStatement(query))
     }
+    "produce a statement and a result set with no query parameters and a compound index" in {
+      val query = "INSERT INTO foo VALUES(1)"
+
+      val resultset = mock[ResultSet]
+      val stmt = mock[Statement]
+      stmt executeUpdate(anyString, any[Array[Int]]) returns 1
+      stmt getGeneratedKeys() returns resultset
+
+      val con = mock[Connection]
+      con createStatement() returns stmt
+
+      val (_, rs) = able.insert(Array(1, 2), query)(con)
+
+      (rs must beAnInstanceOf[RichResultSet]) and
+        (there was no(con).prepareStatement(query))
+    }
     "produce a statement and a result set with query parameters" in {
       val query = "INSERT INTO foo VALUES(?)"
 
@@ -191,6 +207,22 @@ class QueryableSpec extends Specification with Mockito{
 
       val iter = able.insert(query, 1)(con)
       (iter must beAnInstanceOf[CloseableIterator[Int]]) and
+        (there was one(prepared).setObject(anyInt,any))
+    }
+    "produce a statement and a result set with query parameters and a compound index" in {
+      val query = "INSERT INTO foo VALUES(?)"
+
+      val resultset = mock[ResultSet]
+      val prepared = mock[PreparedStatement]
+      prepared executeUpdate() returns 1
+      prepared setObject(anyInt,any) answers(_ => Unit)
+      prepared getGeneratedKeys() returns resultset
+
+      val con = mock[Connection]
+      con prepareStatement(anyString,any[Array[Int]]) returns prepared
+
+      val (_, rs) = able.insert(Array(1), query, 1)(con)
+      (rs must beAnInstanceOf[RichResultSet]) and
         (there was one(prepared).setObject(anyInt,any))
     }
     "close a statement if an exception is thrown" in {
