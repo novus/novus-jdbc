@@ -92,7 +92,7 @@ trait Queryable[DBType] {
     try{
       statement(prepared, params: _*) executeUpdate ()
 
-      new ResultSetIterator[ResultSet,Int](prepared, prepared.getGeneratedKeys, _ getInt 1) //compiler can't deduce the types...
+      new ResultSetIterator[ResultSet,Int](prepared, prepared getGeneratedKeys (), _ getInt 1) //compiler can't deduce the types...
     }
     catch{
       case ex => prepared close (); throw ex
@@ -113,7 +113,7 @@ trait Queryable[DBType] {
     try{
       statement(prepared, params: _*) executeUpdate ()
 
-      (prepared, wrap(prepared.getGeneratedKeys))
+      (prepared, wrap(prepared getGeneratedKeys ()))
     }
     catch{
       case ex => prepared close (); throw ex
@@ -134,7 +134,7 @@ trait Queryable[DBType] {
     try{
       statement(prepared, params: _*) executeUpdate ()
 
-      (prepared, wrap(prepared.getGeneratedKeys))
+      (prepared, wrap(prepared getGeneratedKeys ()))
     }
     catch{
       case ex => prepared close (); throw ex
@@ -153,7 +153,7 @@ trait Queryable[DBType] {
     try{
       stmt executeUpdate (query, Statement.RETURN_GENERATED_KEYS)
 
-      new ResultSetIterator[ResultSet,Int](stmt, stmt.getGeneratedKeys, _ getInt 1) //compiler can't deduce the types...
+      new ResultSetIterator[ResultSet,Int](stmt, stmt getGeneratedKeys (), _ getInt 1) //compiler can't deduce the types...
     }
     catch{
       case ex => stmt close (); throw ex
@@ -171,9 +171,9 @@ trait Queryable[DBType] {
   def insert(columns: Array[Int], query: String)(con: Connection): (Statement, RichResultSet) ={
     val stmt = con createStatement ()
     try{
-      stmt executeUpdate (query, columns)
+      stmt execute (query, columns)
 
-      (stmt, wrap(stmt.getGeneratedKeys))
+      (stmt, wrap(stmt getGeneratedKeys ()))
     }
     catch{
       case ex => stmt close (); throw ex
@@ -191,9 +191,9 @@ trait Queryable[DBType] {
   def insert(columns: Array[String], query: String)(con: Connection): (Statement, RichResultSet) ={
     val stmt = con createStatement ()
     try{
-      stmt executeUpdate (query, columns)
+      stmt execute (query, columns)
 
-      (stmt, wrap(stmt.getGeneratedKeys))
+      (stmt, wrap(stmt getGeneratedKeys ()))
     }
     catch{
       case ex => stmt close (); throw ex

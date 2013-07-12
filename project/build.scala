@@ -22,7 +22,8 @@ object NovusjdbcBuild extends sbt.Build {
         "org.slf4j" % "slf4j-api" % "1.7.2",
         "joda-time" % "joda-time" % "2.1",
         "org.joda" % "joda-convert" % "1.2" % "compile",
-        "org.hsqldb" % "hsqldb" % "2.2.9" % "test"
+        "org.hsqldb" % "hsqldb" % "2.2.9" % "test",
+        "com.h2database" % "h2" % "1.3.172" % "test"
     ) ++ Shared.specsDep(v))))
 
   lazy val novusJdbcBonecp = Project(
