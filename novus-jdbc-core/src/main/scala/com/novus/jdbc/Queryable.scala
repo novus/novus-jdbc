@@ -35,7 +35,7 @@ trait Queryable[DBType] {
       (prepared, wrap(prepared executeQuery ()))
     }
     catch{
-      case ex => prepared close (); throw ex
+      case ex: Throwable => prepared close (); throw ex
     }
   }
 
@@ -52,7 +52,7 @@ trait Queryable[DBType] {
       (stmt, wrap(stmt executeQuery query))
     }
     catch{
-      case ex => stmt close (); throw ex
+      case ex: Throwable => stmt close (); throw ex
     }
   }
 
@@ -95,7 +95,7 @@ trait Queryable[DBType] {
       new ResultSetIterator[ResultSet,Int](prepared, prepared getGeneratedKeys (), _ getInt 1) //compiler can't deduce the types...
     }
     catch{
-      case ex => prepared close (); throw ex
+      case ex: Throwable => prepared close (); throw ex
     }
   }
 
@@ -116,7 +116,7 @@ trait Queryable[DBType] {
       (prepared, wrap(prepared getGeneratedKeys ()))
     }
     catch{
-      case ex => prepared close (); throw ex
+      case ex: Throwable => prepared close (); throw ex
     }
   }
 
@@ -137,7 +137,7 @@ trait Queryable[DBType] {
       (prepared, wrap(prepared getGeneratedKeys ()))
     }
     catch{
-      case ex => prepared close (); throw ex
+      case ex: Throwable => prepared close (); throw ex
     }
   }
 
@@ -156,7 +156,7 @@ trait Queryable[DBType] {
       new ResultSetIterator[ResultSet,Int](stmt, stmt getGeneratedKeys (), _ getInt 1) //compiler can't deduce the types...
     }
     catch{
-      case ex => stmt close (); throw ex
+      case ex: Throwable => stmt close (); throw ex
     }
   }
 
@@ -176,7 +176,7 @@ trait Queryable[DBType] {
       (stmt, wrap(stmt getGeneratedKeys ()))
     }
     catch{
-      case ex => stmt close (); throw ex
+      case ex: Throwable => stmt close (); throw ex
     }
   }
 
@@ -196,7 +196,7 @@ trait Queryable[DBType] {
       (stmt, wrap(stmt getGeneratedKeys ()))
     }
     catch{
-      case ex => stmt close (); throw ex
+      case ex: Throwable => stmt close (); throw ex
     }
   }
 

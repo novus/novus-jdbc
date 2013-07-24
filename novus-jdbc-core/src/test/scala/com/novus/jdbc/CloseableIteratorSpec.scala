@@ -136,7 +136,7 @@ class CloseableIteratorSpec extends Specification with Mockito{
     "handle cases where it won't be padding" in {
       val iter0 = nonCounter()
 
-     iter0 padTo(3, -4) must haveSize(4)
+     (iter0 padTo(3, -4) size) must be equalTo(4) //must haveSize(4)
     }
     "call close when it won't be padding" in {
       var cnt = 0
@@ -149,7 +149,7 @@ class CloseableIteratorSpec extends Specification with Mockito{
     "handle cases where it pads" in{
       val iter0 = nonCounter()
 
-      iter0 padTo(14, -4) must haveSize(14)
+      (iter0 padTo(14, -4) size) must be equalTo(14)//must haveSize(14)
     }
     "call close when it pads" in{
       var cnt = 0
@@ -162,7 +162,7 @@ class CloseableIteratorSpec extends Specification with Mockito{
     "handle padding an empty iterator" in {
       val iter0 = nonCounter()
 
-      iter0 padTo (1,3) must haveSize(4)
+      (iter0 padTo (1,3) size) must be equalTo(4)//must haveSize(4)
     }
     "call close on an iterator that has been padded, dropped and then toList" in {
       var cnt = 0
@@ -247,7 +247,7 @@ class CloseableIteratorSpec extends Specification with Mockito{
     "" in{
       val iter0 = nonCounter()
 
-      iter0 takeWhile(_ == 1) must haveSize(2)
+      (iter0 takeWhile(_ == 1) size) must be equalTo(2)//must haveSize(2)
     }
     "call close" in{
       var cnt = 0
@@ -259,14 +259,13 @@ class CloseableIteratorSpec extends Specification with Mockito{
     }
   }
 
-  //TODO: also make these test close
   "patch" should{
     "not replace anything if the iterator is too small" in{
       var cnt = 0
       val iter0 = counter(() => cnt += 1)
 
       val iter = iter0 patch(10, Iterator(5, 5), 12)
-      (iter must haveSize(4)) and
+      ((iter size) must be equalTo(4)) and //(iter must haveSize(4)) and
         (cnt must be greaterThan 0)
     }
     "not replace anything if the that iterator is empty" in{
@@ -274,7 +273,7 @@ class CloseableIteratorSpec extends Specification with Mockito{
       val iter0 = counter(() => cnt += 1)
 
       val iter = iter0 patch(2, Iterator.empty, 4)
-      (iter must haveSize(4)) and
+      ((iter size) must be equalTo(4)) and //(iter must haveSize(4)) and
         (cnt must be greaterThan 0)
     }
     "replace up to the that iterator's length if not as big as the requested replacement" in{
@@ -282,7 +281,7 @@ class CloseableIteratorSpec extends Specification with Mockito{
       val iter0 = counter(() => cnt += 1)
 
       val list = iter0.patch(2, Iterator(5, 7), 6).toList
-      (list must haveSize(4)) and
+      ((list size) must be equalTo(4)) and //(list must haveSize(4)) and
         (list must contain(5)) and
         (list must contain(7)) and
         (cnt must be greaterThan 0)
@@ -344,7 +343,7 @@ class CloseableIteratorSpec extends Specification with Mockito{
       val iter0 = nonCounter(Iterator.empty)
       val out = iter0.scanLeft(10)(_ + _)
 
-      out must haveSize(1)
+      ((out size) must be equalTo(1)) //out must haveSize(1)
     }
     "call close" in{
       var cnt = 0
@@ -391,7 +390,7 @@ class CloseableIteratorSpec extends Specification with Mockito{
       val iter0 = counter(() => cnt += 1, Iterator(1, 2, 3, 4))
       val iter = iter0 zip Iterator(1, 2, 3, 4, 5)
 
-      (iter must haveSize(4)) and
+      ((iter size) must be equalTo(4)) and //(iter must haveSize(4)) and
         (cnt must be greaterThan 0)
     }
     "work with an argument iterator that is small" in{
@@ -399,7 +398,7 @@ class CloseableIteratorSpec extends Specification with Mockito{
       val iter0 = counter(() => cnt += 1, Iterator(1, 2, 3, 4))
       val iter = iter0 zip Iterator(1, 2)
 
-      (iter must haveSize(2)) and
+      ((iter size) must be equalTo(2)) and //(iter must haveSize(2)) and
         (cnt must be greaterThan 0)
     }
     "call close" in{
@@ -419,20 +418,20 @@ class CloseableIteratorSpec extends Specification with Mockito{
       val iter0 = nonCounter(Iterator.empty)
       val iter = iter0 zipAll (Iterator(1, 2, 3, 4), 1, 1)
 
-      iter must haveSize(4)
+      ((iter size) must be equalTo(4)) //iter must haveSize(4)
     }
     "handle an empty iterator argument" in{
       val iter0 = nonCounter()
       val iter = iter0 zipAll (Iterator.empty, 1, 1)
 
-      iter must haveSize(4)
+      ((iter size) must be equalTo(4))//iter must haveSize(4)
     }
     "work with an iterator that is small" in{
       var cnt = 0
       val iter0 = counter(() => cnt += 1, Iterator(1, 2, 3, 4))
       val iter = iter0 zipAll (Iterator(1, 2, 3, 4), 1, 1)
 
-      (iter must haveSize(4)) and
+      ((iter size) must be equalTo(4)) and //(iter must haveSize(4)) and
         (cnt must be greaterThan 0)
     }
     "work with an argument iterator that is small" in{
@@ -440,7 +439,7 @@ class CloseableIteratorSpec extends Specification with Mockito{
       val iter0 = counter(() => cnt += 1, Iterator(1, 2, 3, 4))
       val iter = iter0 zipAll (Iterator(1, 2), 1, 1)
 
-      (iter must haveSize(4)) and
+      ((iter size) must be equalTo(4)) and //(iter must haveSize(4)) and
         (cnt must be greaterThan 0)
     }
     "call close" in{
@@ -467,7 +466,7 @@ class CloseableIteratorSpec extends Specification with Mockito{
       val iter0 = counter(() => cnt += 1)
       val iter = iter0.zipWithIndex
 
-      (iter must haveSize(4)) and
+      ((iter size) must be equalTo(4)) and //(iter must haveSize(4)) and
         (cnt must be greaterThan 0)
     }
   }
@@ -478,14 +477,14 @@ class CloseableIteratorSpec extends Specification with Mockito{
       val iter0 = counter(() => cnt += 1)
       val iter = iter0 sliding 2
 
-      (iter must haveSize(3)) and
+      ((iter size) must be equalTo(3)) and //(iter must haveSize(3)) and
         (cnt must be greaterThan 0)
     }
     "work with an empty iterator" in{
       val iter0 = nonCounter(Iterator.empty)
       val iter = iter0 sliding 4
 
-      (iter must haveSize(0))
+      iter must beEmpty //(iter must haveSize(0))
     }
   }
 
@@ -495,7 +494,7 @@ class CloseableIteratorSpec extends Specification with Mockito{
       val iter0 = counter(() => cnt += 1)
       val iter = iter0 grouped 4
 
-      (iter must haveSize(1)) and
+      ((iter size) must be equalTo(1)) and //(iter must haveSize(1)) and
         (cnt must be greaterThan 0)
     }
     "segregate into expected groupings" in{
@@ -503,7 +502,7 @@ class CloseableIteratorSpec extends Specification with Mockito{
       val iter0 = counter(() => cnt += 1)
       val iter = iter0 grouped 3
 
-      iter must haveSize(2)
+      ((iter size) must be equalTo(2))//iter must haveSize(2)
     }
     "handle empty iterators" in{
       val iter = nonCounter(Iterator.empty)
@@ -529,7 +528,7 @@ class CloseableIteratorSpec extends Specification with Mockito{
       val iter0 = counter(() => cnt += 1)
       val buffered = iter0.buffered
 
-      (buffered must haveSize(4)) and
+      ((buffered size) must be equalTo(4)) and //(buffered must haveSize(4)) and
         (cnt must be greaterThan 0)
     }
   }

@@ -174,16 +174,16 @@ trait CloseableIterator[+A] extends Iterator[A] with Closeable {
   /**
    * Creates an iterator returning an interval of the values produced by this iterator.
    *
-   * @param from the index of the first element in this iterator which forms part of the slice.
-   * @param to the index of the first element following the slice.
+   * @param start the index of the first element in this iterator which forms part of the slice.
+   * @param stop the index of the first element following the slice.
    * @return an iterator which advances this iterator past the first `from` elements using `drop`, and then takes
    *         `to - from` elements, using `take`.
    * @note Reuse: $consumesAndProducesIterator
    */
-  override def slice(from: Int, to: Int) ={
-    require(from <= to, "The sliced range must have a lower bound less than or equal to the upper bound.")
+  override def slice(start: Int, stop: Int) ={
+    require(start <= stop, "The sliced range must have a lower bound less than or equal to the upper bound.")
 
-    var cnt = from
+    var cnt = start
     while(cnt > 0 && self.hasNext){
       self next ()
       cnt -= 1
@@ -191,12 +191,12 @@ trait CloseableIterator[+A] extends Iterator[A] with Closeable {
     if(!self.hasNext) self close()
 
     new CloseableIterator[A]{
-      private var until = to
+      private var limit = stop
 
-      override def hasNext = self.hasNext && 0 <= until
+      override def hasNext = self.hasNext && 0 <= limit
 
       override def next() = if(hasNext){
-        until -= 1
+        limit -= 1
         val output = self next ()
         if(!hasNext) close()
         output
