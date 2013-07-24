@@ -128,7 +128,7 @@ class ResultSetIteratorSpec extends Specification with Mockito{
       val iter = new ResultSetIterator[ResultSet,String](statement, mocked, _ getString "yo") slice(0,10)
       iter.toList
 
-      there was one(statement).close()
+      there was atLeastOne(statement).close()
     }
     "allow toList to close a connection on a truncated empty set" in{
       val statement = mock[Statement]

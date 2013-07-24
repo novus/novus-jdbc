@@ -53,14 +53,14 @@ class ResultSetIterator[Res <: ResultSet, +A](statement: Statement, result: Res,
     if (!canBeIncremented) close()
 
     new CloseableIterator[A]{
-      private var until = to
+      private var until = to - from
 
       override def hasNext = self.hasNext && 0 <= until
 
       override def next() = if(hasNext){
         until -= 1
         val output = self next ()
-        if(until < 0) close()
+        if(!hasNext) close()
         output
       }
       else Iterator.empty next ()

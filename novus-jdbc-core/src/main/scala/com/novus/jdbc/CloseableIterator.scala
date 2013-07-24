@@ -191,7 +191,7 @@ trait CloseableIterator[+A] extends Iterator[A] with Closeable {
     if(!self.hasNext) self close()
 
     new CloseableIterator[A]{
-      private var until = to
+      private var until = to - from
 
       override def hasNext = self.hasNext && 0 <= until
 
