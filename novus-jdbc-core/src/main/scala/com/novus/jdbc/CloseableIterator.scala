@@ -2,6 +2,7 @@ package com.novus.jdbc
 
 import collection.{Iterator, GenTraversableOnce}
 import annotation.tailrec
+import java.io.Closeable
 
 /**
  * A trait for an iterator that holds onto an underlying resource which must be released upon consumption. It contains
@@ -30,7 +31,7 @@ import annotation.tailrec
  * The underlying resource may be released, leading to unexpected exception and errors if an attempt is made to use the
  * iterator again.
  */
-trait CloseableIterator[+A] extends Iterator[A]{
+trait CloseableIterator[+A] extends Iterator[A] with Closeable {
   self =>
 
   /**
@@ -40,7 +41,7 @@ trait CloseableIterator[+A] extends Iterator[A]{
    * @return a buffered iterator producing the same values as this iterator.
    * @note Reuse: $consumesAndProducesIterator
    */
-  override def buffered = new CloseableIterator[A] with BufferedIterator[A]{
+  override def buffered = new CloseableIterator[A] with BufferedIterator[A] {
     private var hd: A = _
     private var hdDefined: Boolean = false
 
