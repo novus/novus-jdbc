@@ -4,9 +4,9 @@ A lightly opinionated, thin wrapper around the standard [Java JDBC API].
 
 #### Philosophy
 
-Adhering to KISS (Keep it simple, stupid,) Novus-JDBC provides several methods to wrap the main CRUD DB operations in a thin, clean, and testable API layer. `Statement`, `ResultSet`, and `Connection` boilerplate is built-in behind the scenes to each member function call, freeing the end user from the worry of resource handling. The only DB specific logic that needs to be written by a developer is the SQL statement, all the rest is abstracted away via type classes.
+Novus-JDBC provides several methods to wrap the main CRUD DB operations in a thin, clean, and testable API layer. Java's `Statement`, `ResultSet`, and `Connection` boilerplate is built-in behind the scenes to each member function call, freeing the end user from the worry of resource handling. The only DB specific logic that needs to be written by a developer is the SQL statement itself, everything else is abstracted away via type classes.
 
-As a corollary to KISS and in keeping with the spirit of that philosophy, there are several things Novus-JDBC does not do. It does not attempt to hide from the end user the industry standard query language, SQL. There is no type-safe or composible DSL and no magical ORM layer sitting between the developer and the database. The library is not built around any one specific flavor of database nor does it come prepackaged with a single database connection pool. Very little is assumed in an attempt to allow for maximum experimentation and flexibility of use.
+This library aims to follow the tenets of KISS (Keep it simple, stupid.) As a corollary and in keeping with the spirit of that philosophy, there are several things Novus-JDBC does not do. It does not attempt to hide, modify, or augment the industry standard query language, SQL. There is no type-safe or composible DSL and no magical ORM layer sitting between the developer and the database. The library is not built around any one specific flavor of database nor does it come prepackaged with a single database connection pool. Very little is assumed in an attempt to allow for maximum experimentation and flexibility of use.
 
 #### Features
 
@@ -69,13 +69,14 @@ For those wishing to migrate away from Querulous, it is suggested to first repla
 
 ## Alternatives
 
-If it isn't clear by the philosophy, this library is built for those who want, need, and/or enjoy dealing directly with raw SQL. It could be used as the foundation for a more feature rich library or stand-alone as is. For those who don't want to deal with raw SQL or do not relish the thought of reimplementing a larger SQL framework, it is suggested they use one of the already available alternatives:
+If it isn't clear by the philosophy, this library is built for those who want, need, and/or enjoy dealing directly with raw SQL. It could be used as the foundation for a more feature rich library or stand-alone as is. For those who don't want to deal with raw SQL, are working with MySQL/MariaDd or do not relish the thought of reimplementing a larger SQL framework, it is suggested they use one of the already available alternatives:
 
  1. [Querulous], a MySQL specific implementation with a similar API
  2. [Slick], a type safe, composible, SQL DSL which abstracts away the underlying DB
  3. [Squeryl], another type safe DSL which abstracts away the underlying DB yet retains the flavor of raw SQL
  4. [Circumflex], a Scala based ORM under active development and use
  5. [Hibernate], an ORM backed by a friendly, vibrant, and rather large community. For those wishing there own special little hell.
+ 6. [SORM], a functional and boilerplate free Scala ORM framework
 
 
 [Java JDBC API]: http://docs.oracle.com/javase/tutorial/jdbc/overview/index.html
@@ -87,3 +88,4 @@ If it isn't clear by the philosophy, this library is built for those who want, n
 [Squeryl]: http://squeryl.org/
 [Circumflex]: https://github.com/inca/circumflex
 [Hibernate]: http://www.hibernate.org/
+[SORM]: http://sorm-framework.org/
