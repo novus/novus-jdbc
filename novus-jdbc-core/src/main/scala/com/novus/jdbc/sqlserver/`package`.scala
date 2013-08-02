@@ -15,17 +15,18 @@
  */
 package com.novus.jdbc.sqlserver
 
-import com.novus.jdbc.{RichResultSet, Queryable}
+import com.novus.jdbc.{StatementResult, RichResultSet, Queryable}
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
 import java.util.Calendar
-import java.sql.ResultSet
+import java.sql.{CallableStatement, ResultSet}
 
 object `package` extends SqlServerImplicits
 
 sealed trait SqlServer
 
 trait SqlServerImplicits {
+  //TODO: Add in config so US/Eastern can, at some point, be able to be substituted.
   implicit object SqlServerQueryable extends Queryable[SqlServer]{
     val pattern = DateTimeFormat forPattern "yyyy-MM-dd HH:mm:ss.SSS"
     val formatter = pattern withZone timezone()
@@ -41,6 +42,19 @@ trait SqlServerImplicits {
 
       override def getDateTime(column: String, cal: Calendar): DateTime = parseDate(row getString column, cal)
       override def getDateTime(column: Int, cal: Calendar): DateTime = parseDate(row getString column, cal)
+
+      protected def parseDate(date: String, cal: Calendar) =
+        if(date == null || date.isEmpty) null else pattern withZone timezone(cal) parseDateTime (date)
+    }
+
+    override def wrap(callable: CallableStatement) = new StatementResult(callable){
+      override def getDateTime(column: String): DateTime = parseDate(getString(column))
+      override def getDateTime(column: Int): DateTime = parseDate(getString(column))
+
+      protected def parseDate(date: String) = if(date == null || date.isEmpty) null else formatter parseDateTime date
+
+      override def getDateTime(column: String, cal: Calendar): DateTime = parseDate(getString(column), cal)
+      override def getDateTime(column: Int, cal: Calendar): DateTime = parseDate(getString(column), cal)
 
       protected def parseDate(date: String, cal: Calendar) =
         if(date == null || date.isEmpty) null else pattern withZone timezone(cal) parseDateTime (date)

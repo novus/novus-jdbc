@@ -298,21 +298,22 @@ trait QueryExecutor[DBType] {
    */
   final def merge(q: String)(implicit query: Queryable[DBType]): CloseableIterator[Int] = execute(q) { query merge q }
 
-  final def proc[T](q: String)(implicit query: Queryable[DBType]): Int = execute(q){ query proc q }
+  final def proc[T](q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+    execute(q){ query proc (f, q) }
 
-  final def proc[T](q: String, params: Any*)(implicit query: Queryable[DBType]): Int =
-    execute(q, params: _*){ query proc (q, params: _*) }
+  final def proc[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+    execute(q, params: _*){ query proc (f, q, params: _*) }
 
-  final def proc[T](out: Array[Int], q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+  final def proc[T](out: Array[Int], q: String)(f: StatementResult => T)(implicit query: Queryable[DBType]): T =
     execute(q) { query proc (out, f, q) }
 
-  final def proc[T](out: Array[String], q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+  final def proc[T](out: Array[String], q: String)(f: StatementResult => T)(implicit query: Queryable[DBType]): T =
     execute(q) { query proc (out, f, q) }
 
-  final def proc[T](out: Array[Int], q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+  final def proc[T](out: Array[Int], q: String, params: Any*)(f: StatementResult => T)(implicit query: Queryable[DBType]): T =
     execute(q, params: _*) { query proc (out, f, q, params: _*) }
 
-  final def proc[T](out: Array[String], q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+  final def proc[T](out: Array[String], q: String, params: Any*)(f: StatementResult => T)(implicit query: Queryable[DBType]): T =
     execute(q, params: _*) { query proc (out, f, q, params: _*) }
 
   /** Shuts down the underlying connection pool. Should be called before this object is garbage collected. */

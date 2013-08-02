@@ -17,7 +17,7 @@ package com.novus.jdbc
 
 import java.util.regex.{ Matcher, Pattern }
 import annotation.tailrec
-import java.sql.{Connection, Statement, ResultSet, PreparedStatement, SQLException, Types}
+import java.sql.{CallableStatement, Connection, Statement, ResultSet, PreparedStatement, SQLException, Types}
 import java.io.{ Reader, InputStream }
 
 /**
@@ -33,6 +33,8 @@ trait Queryable[DBType] {
    * @param row The object to be converted
    */
   def wrap(row: ResultSet) = new RichResultSet(row)
+
+  def wrap(callable: CallableStatement) = new StatementResult(callable)
 
   /**
    * Given a connection, a valid SQL statement, and a list of parameters for that statement, executes the statement
@@ -298,81 +300,85 @@ trait Queryable[DBType] {
    */
   @inline def merge(query: String)(con: Connection): CloseableIterator[Int] = insert(query)(con)
 
-  def proc(query: String)(con: Connection): Int ={
+  def proc[T](f: RichResultSet => T, query: String)(con: Connection): CloseableIterator[T] ={
     val callable = con prepareCall query
     try{
-      callable executeUpdate ()
+      new ResultSetIterator(callable, wrap(callable executeQuery ()), f)
+    }
+    catch{
+      case ex: Throwable => callable close (); throw ex
+    }
+  }
+
+  def proc[T](f: RichResultSet => T, query: String, params: Any*)(con: Connection): CloseableIterator[T] ={
+    val callable = con prepareCall formatQuery(query, params: _*)
+    try{
+      statement(callable, params: _*)
+
+      new ResultSetIterator(callable, wrap(callable executeQuery ()), f)
+    }
+    catch{
+      case ex: Throwable => callable close (); throw ex
+    }
+  }
+
+  def proc[T](out: Array[String], f: StatementResult => T, query: String)(con: Connection): T ={
+    val callable = con prepareCall query
+    try{
+      out foreach { name =>
+        callable registerOutParameter (name, Types.JAVA_OBJECT)
+      }
+      callable execute ()
+
+      f(wrap(callable))
     }
     finally{
       callable close ()
     }
   }
 
-  def proc(query: String, params: Any*)(con: Connection): Int ={
-    val callable = con prepareCall formatQuery(query, params: _*)
+  def proc[T](out: Array[Int], f: StatementResult => T, query: String)(con: Connection): T ={
+    val callable = con prepareCall query
     try{
-      statement(callable, params: _*) executeUpdate ()
+      out foreach { name =>
+        callable registerOutParameter (name, Types.JAVA_OBJECT)
+      }
+      callable execute ()
+
+      f(wrap(callable))
     }
     finally{
       callable close ()
     }
   }
 
-  def proc[T](out: Array[String], f: RichResultSet => T, query: String)(con: Connection): CloseableIterator[T] ={
-    val callable = con prepareCall query
-    try{
-      out foreach { name =>
-        callable registerOutParameter (name, Types.JAVA_OBJECT)
-      }
-
-      new ResultSetIterator(callable, wrap(callable executeQuery query), f)
-    }
-    catch{
-      case ex: Throwable => callable close (); throw ex
-    }
-  }
-
-  def proc[T](out: Array[Int], f: RichResultSet => T, query: String)(con: Connection): CloseableIterator[T] ={
-    val callable = con prepareCall query
-    try{
-      out foreach { name =>
-        callable registerOutParameter (name, Types.JAVA_OBJECT)
-      }
-
-      new ResultSetIterator(callable, wrap(callable executeQuery query), f)
-    }
-    catch{
-      case ex: Throwable => callable close (); throw ex
-    }
-  }
-
-  def proc[T](out: Array[String], f: RichResultSet => T, query: String, params: Any*)(con: Connection): CloseableIterator[T] ={
+  def proc[T](out: Array[String], f: StatementResult => T, query: String, params: Any*)(con: Connection): T ={
     val callable = con prepareCall formatQuery(query, params: _*)
     try{
       out foreach { name =>
         callable registerOutParameter (name, Types.JAVA_OBJECT)
       }
-      statement(callable, params: _*)
+      statement(callable, params: _*) execute ()
 
-      new ResultSetIterator(callable, wrap(callable executeQuery query), f)
+      f(wrap(callable))
     }
-    catch{
-      case ex: Throwable => callable close (); throw ex
+    finally{
+      callable close ()
     }
   }
 
-  def proc[T](out: Array[Int], f: RichResultSet => T, query: String, params: Any*)(con: Connection): CloseableIterator[T] ={
+  def proc[T](out: Array[Int], f: StatementResult => T, query: String, params: Any*)(con: Connection): T ={
     val callable = con prepareCall formatQuery(query, params: _*)
     try{
       out foreach { name =>
         callable registerOutParameter (name, Types.JAVA_OBJECT)
       }
-      statement(callable, params: _*)
+      statement(callable, params: _*) execute ()
 
-      new ResultSetIterator(callable, wrap(callable executeQuery query), f)
+      f(wrap(callable))
     }
-    catch{
-      case ex: Throwable => callable close (); throw ex
+    finally{
+      callable close ()
     }
   }
 
