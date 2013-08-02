@@ -128,10 +128,9 @@ class QueryableSpec extends Specification with Mockito{
       val con = mock[Connection]
       con createStatement() returns stmt
 
-      val (_, richset) = able.select(query)(con)
+      val res = able.select({x:Any => 1}, query)(con)
 
-      (richset must beAnInstanceOf[RichResultSet]) and
-        (there was no(con).prepareStatement(query))
+      there was no(con).prepareStatement(query)
     }
     "produce a statement and a result set with query parameters" in {
       val query = "SELECT 1 FROM foo WHERE b IN (?)"
@@ -144,9 +143,9 @@ class QueryableSpec extends Specification with Mockito{
       val con = mock[Connection]
       con prepareStatement(anyString) returns prepared
 
-      val (_, richset) = able.select(query, List(1,2))(con)
-      (richset must beAnInstanceOf[RichResultSet]) and
-        (there was two(prepared).setObject(anyInt,any))
+      val res = able.select({x:Any => 1}, query, List(1,2))(con)
+
+       there was two(prepared).setObject(anyInt,any)
     }
     "close a statement if an exception is thrown" in {
       val query = "SELECT 1 FROM foo WHERE v = ? AND p = ?"
@@ -159,7 +158,7 @@ class QueryableSpec extends Specification with Mockito{
       val con = mock[Connection]
       con prepareStatement(anyString) returns prepared
 
-      (able.select(query, 1, 2, 3)(con) must throwA[SQLException]) and
+      (able.select({x:Any => 1}, query, 1, 2, 3)(con) must throwA[SQLException]) and
         (there was one(prepared).close())
     }
     "close a statement if an exception is thrown" in {
@@ -170,7 +169,7 @@ class QueryableSpec extends Specification with Mockito{
       val con = mock[Connection]
       con createStatement() returns statement
 
-      (able.select(query)(con) must throwA[SQLException]) and
+      (able.select({x:Any => 1}, query)(con) must throwA[SQLException]) and
         (there was one(statement).close())
     }
   }
@@ -203,10 +202,9 @@ class QueryableSpec extends Specification with Mockito{
       val con = mock[Connection]
       con createStatement() returns stmt
 
-      val (_, rs) = able.insert(Array(1, 2), query)(con)
+      val res = able.insert(Array(1, 2), {x:Any => 1}, query)(con)
 
-      (rs must beAnInstanceOf[RichResultSet]) and
-        (there was no(con).prepareStatement(query))
+      there was no(con).prepareStatement(query)
     }
     "produce a statement and a result set with query parameters" in {
       val query = "INSERT INTO foo VALUES(?)"
@@ -236,9 +234,9 @@ class QueryableSpec extends Specification with Mockito{
       val con = mock[Connection]
       con prepareStatement(anyString,any[Array[Int]]) returns prepared
 
-      val (_, rs) = able.insert(Array(1), query, 1)(con)
-      (rs must beAnInstanceOf[RichResultSet]) and
-        (there was one(prepared).setObject(anyInt,any))
+      val res = able.insert(Array(1), {x:Any => 1}, query, 1)(con)
+
+      there was one(prepared).setObject(anyInt,any)
     }
     "close a statement if an exception is thrown" in {
       val query = "INSERT INTO foo VALUES(?,?)"

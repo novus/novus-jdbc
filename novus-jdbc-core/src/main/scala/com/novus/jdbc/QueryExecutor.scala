@@ -15,7 +15,7 @@
  */
 package com.novus.jdbc
 
-import java.sql.{ Connection, Statement }
+import java.sql.Connection
 import org.slf4j.LoggerFactory
 
 /**
@@ -107,42 +107,40 @@ trait QueryExecutor[DBType] {
    *
    * @param q The query statement
    * @param params The query parameters
-   * @param f A transform from a `RichResultSet` to a type `T`
+   * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
    * @tparam T The returned type from the query
    */
   final def selectOne[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): Option[T] = {
-    val (stmt, rs) = execute(q, params: _*) { query select (q, params: _*) }
+    val res = execute(q, params: _*) { query select (f, q, params: _*) }
 
-    one(stmt, rs, f)
+    one(res)
   }
 
   /**
-   * Execute a query and transform only the head of the `RichResultSet`. If this query would produce multiple results,
-   * they are lost.
+   * Execute a query and transform only the head of the [[com.novus.jdbc.RichResultSet]]. If this query would produce
+   * multiple results, they are lost.
    *
    * @param q The query statement
-   * @param f A transform from a `RichResultSet` to a type `T`
+   * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
    * @tparam T The returned type from the query
    */
   final def selectOne[T](q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): Option[T] ={
-    val (stmt, rs) = execute(q){ query select q }
+    val res = execute(q){ query select (f, q) }
 
-    one(stmt, rs, f)
+    one(res)
   }
 
   /**
    * Given the products of an executed query, transforms only the first result using the supplied function `f`.
    *
-   * @param stmt A [[java.sql.Statement]]
-   * @param rs A `RichResultSet`
-   * @param f A transformation from a `RichResultSet` to a type `T`
+   * @param res The [[com.novus.jdbc.CloseableIterator]] produced from the query
    * @tparam T The return type from the query
    */
-  final private def one[T](stmt: Statement, rs: RichResultSet, f: RichResultSet => T): Option[T] = try{
-    if (rs next ()) Some(f(rs)) else None
+  final private def one[T](res: CloseableIterator[T]): Option[T] = try {
+    if (res.hasNext) Some(res next ()) else None
   }
   finally{
-    stmt close ()
+    res close ()
   }
 
   /**
@@ -151,14 +149,11 @@ trait QueryExecutor[DBType] {
    *
    * @param q The query statement
    * @param params The query parameters
-   * @param f A transform from a `RichResultSet` to a type `T`
+   * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
    * @tparam T The returned type from the query
    */
-  final def select[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] = {
-    val (stmt, rs) = execute(q, params: _*) { query select (q, params: _*) }
-
-    new ResultSetIterator(stmt, rs, f)
-  }
+  final def select[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+    execute(q, params: _*) { query select (f, q, params: _*) }
 
   /**
    * Execute a query and yield a [[com.novus.jdbc.CloseableIterator]] which, as consumed, will progress through the
@@ -168,14 +163,11 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a `RichResultSet` to a type `T`
    * @tparam T The returned type from the query
    */
-  final def select[T](q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] = {
-    val (stmt, rs) = execute(q) { query select q }
-
-    new ResultSetIterator(stmt, rs, f)
-  }
+  final def select[T](q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+    execute(q) { query select (f, q) }
 
   /**
-   * Eagerly evaluates the argument function against the returned `RichResultSet`.
+   * Eagerly evaluates the argument function against the returned [[com.novus.jdbc.RichResultSet]].
    *
    * @see #select
    */
@@ -205,14 +197,11 @@ trait QueryExecutor[DBType] {
    * @param columns The index of each column which represents the auto generated key
    * @param q The query statement
    * @param params The query parameters
-   * @param f A transform from a `RichResultSet` to a type `T`
+   * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
    * @tparam T The return type of the query
    */
-  final def insert[T](columns: Array[Int], q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] = {
-    val (stmt, rs) = execute(q, params: _*){ query insert (columns, q, params: _*) }
-
-    new ResultSetIterator(stmt, rs, f)
-  }
+  final def insert[T](columns: Array[Int], q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+    execute(q, params: _*){ query insert (columns, f, q, params: _*) }
 
   /**
    * Returns an iterator containing the compound index column of the rows which were inserted by this insert statement.
@@ -223,11 +212,8 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a `RichResultSet` to a type `T`
    * @tparam T The return type of the query
    */
-  final def insert[T](columns: Array[String], q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] = {
-    val (stmt, rs) = execute(q, params: _*){ query insert (columns, q, params: _*) }
-
-    new ResultSetIterator(stmt, rs, f)
-  }
+  final def insert[T](columns: Array[String], q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+    execute(q, params: _*){ query insert (columns, f, q, params: _*) }
 
   /**
    * Returns an iterator containing the ID column of the rows which were inserted by this insert statement.
@@ -244,11 +230,8 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a `RichResultSet` to a type `T`
    * @tparam T The return type of the query
    */
-  final def insert[T](columns: Array[Int], q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] = {
-    val (stmt, rs) = execute(q){ query insert (columns, q) }
-
-    new ResultSetIterator(stmt, rs, f)
-  }
+  final def insert[T](columns: Array[Int], q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+    execute(q){ query insert (columns, f, q) }
 
   /**
    * Returns an iterator containing the compound index column of the rows which were inserted by this insert statement.
@@ -258,11 +241,8 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a `RichResultSet` to a type `T`
    * @tparam T The return type of the query
    */
-  final def insert[T](columns: Array[String], q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] = {
-    val (stmt, rs) = execute(q){ query insert (columns, q) }
-
-    new ResultSetIterator(stmt, rs, f)
-  }
+  final def insert[T](columns: Array[String], q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+    execute(q){ query insert (columns, f, q) }
 
   /**
    * Returns the row count updated by this SQL statement. If the SQL statement is not a row update operation, such as a
@@ -317,6 +297,23 @@ trait QueryExecutor[DBType] {
    * @param q The query statement
    */
   final def merge(q: String)(implicit query: Queryable[DBType]): CloseableIterator[Int] = execute(q) { query merge q }
+
+  final def proc[T](q: String)(implicit query: Queryable[DBType]): Int = execute(q){ query proc q }
+
+  final def proc[T](q: String, params: Any*)(implicit query: Queryable[DBType]): Int =
+    execute(q, params: _*){ query proc (q, params: _*) }
+
+  final def proc[T](out: Array[Int], q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+    execute(q) { query proc (out, f, q) }
+
+  final def proc[T](out: Array[String], q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+    execute(q) { query proc (out, f, q) }
+
+  final def proc[T](out: Array[Int], q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+    execute(q, params: _*) { query proc (out, f, q, params: _*) }
+
+  final def proc[T](out: Array[String], q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
+    execute(q, params: _*) { query proc (out, f, q, params: _*) }
 
   /** Shuts down the underlying connection pool. Should be called before this object is garbage collected. */
   def shutdown()

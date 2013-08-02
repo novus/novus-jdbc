@@ -38,19 +38,21 @@ trait Queryable[DBType] {
    * Given a connection, a valid SQL statement, and a list of parameters for that statement, executes the statement
    * against the database and returns a JDBC ResultSet.
    *
+   * @param f A transform from a `RichResultSet` to a type `T`
    * @param query The query string
    * @param params The query parameters
    * @param con A database connection object
+   * @tparam T The return type of the query
    */
-  def select(query: String, params: Any*)(con: Connection): (Statement, RichResultSet) = {
+  def select[T](f: RichResultSet => T, query: String, params: Any*)(con: Connection): CloseableIterator[T] = {
     val prepared = con prepareStatement formatQuery(query, params: _*)
     try{
       statement(prepared, params: _*)
 
-      (prepared, wrap(prepared executeQuery ()))
+      new ResultSetIterator(prepared, wrap(prepared executeQuery ()), f)
     }
     catch{
-      case ex => prepared close (); throw ex
+      case ex: Throwable => prepared close (); throw ex
     }
   }
 
@@ -58,16 +60,18 @@ trait Queryable[DBType] {
    * Given a connection and a valid SQL statement, executes the statement against the database and returns a JDBC
    * ResultSet.
    *
+   * @param f A transform from a `RichResultSet` to a type `T`
    * @param query The query string
    * @param con A database connection object
+   * @tparam T The return type of the query
    */
-  def select(query: String)(con: Connection): (Statement, RichResultSet) = {
+  def select[T](f: RichResultSet => T, query: String)(con: Connection): CloseableIterator[T] = {
     val stmt = con createStatement ()
     try{
-      (stmt, wrap(stmt executeQuery query))
+      new ResultSetIterator(stmt, wrap(stmt executeQuery query), f)
     }
     catch{
-      case ex => stmt close (); throw ex
+      case ex: Throwable => stmt close (); throw ex
     }
   }
 
@@ -110,7 +114,7 @@ trait Queryable[DBType] {
       new ResultSetIterator[ResultSet,Int](prepared, prepared getGeneratedKeys (), _ getInt 1) //compiler can't deduce the types...
     }
     catch{
-      case ex => prepared close (); throw ex
+      case ex: Throwable => prepared close (); throw ex
     }
   }
 
@@ -119,19 +123,21 @@ trait Queryable[DBType] {
    * parameters for that statement, executes the insertion against the database and returns a JDBC ResultSet.
    *
    * @param columns The index of each compound key column
+   * @param f A transform from a `RichResultSet` to a type `T`
    * @param query The query string
    * @param params The query parameters
    * @param con A database connection object
+   * @tparam T The return type of the query
    */
-  def insert(columns: Array[Int], query: String, params: Any*)(con: Connection): (Statement, RichResultSet) ={
+  def insert[T](columns: Array[Int], f: RichResultSet => T, query: String, params: Any*)(con: Connection): CloseableIterator[T] ={
     val prepared = con prepareStatement (query, columns)
     try{
       statement(prepared, params: _*) executeUpdate ()
 
-      (prepared, wrap(prepared getGeneratedKeys ()))
+      new ResultSetIterator(prepared, wrap(prepared getGeneratedKeys ()), f)
     }
     catch{
-      case ex => prepared close (); throw ex
+      case ex: Throwable => prepared close (); throw ex
     }
   }
 
@@ -140,19 +146,20 @@ trait Queryable[DBType] {
    * parameters for that statement, executes the insertion against the database and returns a JDBC ResultSet.
    *
    * @param columns The name of each compound key column
+   * @param f A transform from a `RichResultSet` to a type `T`
    * @param query The query string
    * @param params The query parameters
    * @param con A database connection object
    */
-  def insert(columns: Array[String], query: String, params: Any*)(con: Connection): (Statement, RichResultSet) ={
+  def insert[T](columns: Array[String], f: RichResultSet => T, query: String, params: Any*)(con: Connection): CloseableIterator[T] ={
     val prepared = con prepareStatement (query, columns)
     try{
       statement(prepared, params: _*) executeUpdate ()
 
-      (prepared, wrap(prepared getGeneratedKeys ()))
+      new ResultSetIterator(prepared, wrap(prepared getGeneratedKeys ()), f)
     }
     catch{
-      case ex => prepared close (); throw ex
+      case ex: Throwable => prepared close (); throw ex
     }
   }
 
@@ -171,7 +178,7 @@ trait Queryable[DBType] {
       new ResultSetIterator[ResultSet,Int](stmt, stmt getGeneratedKeys (), _ getInt 1) //compiler can't deduce the types...
     }
     catch{
-      case ex => stmt close (); throw ex
+      case ex: Throwable => stmt close (); throw ex
     }
   }
 
@@ -180,18 +187,19 @@ trait Queryable[DBType] {
    * the insertion against the database and returns a JDBC ResultSet.
    *
    * @param columns The array of column indexes
+   * @param f A transform from a `RichResultSet` to a type `T`
    * @param query The query string
    * @param con A database connection object
    */
-  def insert(columns: Array[Int], query: String)(con: Connection): (Statement, RichResultSet) ={
+  def insert[T](columns: Array[Int], f: RichResultSet => T, query: String)(con: Connection): CloseableIterator[T] ={
     val stmt = con createStatement ()
     try{
       stmt execute (query, columns)
 
-      (stmt, wrap(stmt getGeneratedKeys ()))
+      new ResultSetIterator(stmt, wrap(stmt getGeneratedKeys ()), f)
     }
     catch{
-      case ex => stmt close (); throw ex
+      case ex: Throwable => stmt close (); throw ex
     }
   }
 
@@ -200,18 +208,20 @@ trait Queryable[DBType] {
    * the insertion against the database and returns a JDBC ResultSet.
    *
    * @param columns The array of column names
+   * @param f A transform from a `RichResultSet` to a type `T`
    * @param query The query string
    * @param con A database connection object
+   * @tparam T The return type of the query
    */
-  def insert(columns: Array[String], query: String)(con: Connection): (Statement, RichResultSet) ={
+  def insert[T](columns: Array[String], f: RichResultSet => T, query: String)(con: Connection): CloseableIterator[T] ={
     val stmt = con createStatement ()
     try{
       stmt execute (query, columns)
 
-      (stmt, wrap(stmt getGeneratedKeys ()))
+      new ResultSetIterator(stmt, wrap(stmt getGeneratedKeys ()), f)
     }
     catch{
-      case ex => stmt close (); throw ex
+      case ex: Throwable => stmt close (); throw ex
     }
   }
 
@@ -287,6 +297,84 @@ trait Queryable[DBType] {
    * @param con A database connection object
    */
   @inline def merge(query: String)(con: Connection): CloseableIterator[Int] = insert(query)(con)
+
+  def proc(query: String)(con: Connection): Int ={
+    val callable = con prepareCall query
+    try{
+      callable executeUpdate ()
+    }
+    finally{
+      callable close ()
+    }
+  }
+
+  def proc(query: String, params: Any*)(con: Connection): Int ={
+    val callable = con prepareCall formatQuery(query, params: _*)
+    try{
+      statement(callable, params: _*) executeUpdate ()
+    }
+    finally{
+      callable close ()
+    }
+  }
+
+  def proc[T](out: Array[String], f: RichResultSet => T, query: String)(con: Connection): CloseableIterator[T] ={
+    val callable = con prepareCall query
+    try{
+      out foreach { name =>
+        callable registerOutParameter (name, Types.JAVA_OBJECT)
+      }
+
+      new ResultSetIterator(callable, wrap(callable executeQuery query), f)
+    }
+    catch{
+      case ex: Throwable => callable close (); throw ex
+    }
+  }
+
+  def proc[T](out: Array[Int], f: RichResultSet => T, query: String)(con: Connection): CloseableIterator[T] ={
+    val callable = con prepareCall query
+    try{
+      out foreach { name =>
+        callable registerOutParameter (name, Types.JAVA_OBJECT)
+      }
+
+      new ResultSetIterator(callable, wrap(callable executeQuery query), f)
+    }
+    catch{
+      case ex: Throwable => callable close (); throw ex
+    }
+  }
+
+  def proc[T](out: Array[String], f: RichResultSet => T, query: String, params: Any*)(con: Connection): CloseableIterator[T] ={
+    val callable = con prepareCall formatQuery(query, params: _*)
+    try{
+      out foreach { name =>
+        callable registerOutParameter (name, Types.JAVA_OBJECT)
+      }
+      statement(callable, params: _*)
+
+      new ResultSetIterator(callable, wrap(callable executeQuery query), f)
+    }
+    catch{
+      case ex: Throwable => callable close (); throw ex
+    }
+  }
+
+  def proc[T](out: Array[Int], f: RichResultSet => T, query: String, params: Any*)(con: Connection): CloseableIterator[T] ={
+    val callable = con prepareCall formatQuery(query, params: _*)
+    try{
+      out foreach { name =>
+        callable registerOutParameter (name, Types.JAVA_OBJECT)
+      }
+      statement(callable, params: _*)
+
+      new ResultSetIterator(callable, wrap(callable executeQuery query), f)
+    }
+    catch{
+      case ex: Throwable => callable close (); throw ex
+    }
+  }
 
   protected[jdbc] val questionMark = Pattern.compile("""\?""")
   /**
