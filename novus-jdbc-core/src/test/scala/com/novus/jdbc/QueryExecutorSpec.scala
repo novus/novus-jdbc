@@ -43,12 +43,12 @@ class QueryExecutorSpec extends Specification{
     "work with parameters" in {
       val out = TestExecutor.select("SELECT id FROM FOO WHERE bar = ?", 2){ _ getInt "id" }
 
-      out must haveLength(1)
+      out.toSeq must haveLength(1)
     }
     "work without parameters" in {
       val out = TestExecutor.select("SELECT bar FROM FOO WHERE id = 1"){ _ getInt "bar" }
 
-      out must haveLength(1)
+      out.toSeq must haveLength(1)
     }
   }
 
@@ -115,12 +115,12 @@ class QueryExecutorSpec extends Specification{
     "work with paramters to return auto generated keys" in{
       val out = TestExecutor.insert("INSERT INTO Something(bar, baz) VALUES(?, ?)", 5, "entry")
 
-      out must haveLength(1)
+      out.toSeq must haveLength(1)
     }
     "work without parameters to return auto generated keys" in {
       val out = TestExecutor.insert("INSERT INTO Something(bar, baz) VALUES(3, 'yo')")
 
-      out must haveLength(1)
+      out.toSeq must haveLength(1)
     }
   }
 

@@ -55,25 +55,26 @@ class ResultSetIterator[Res <: ResultSet, +A](statement: Statement, result: Res,
   /**
    * Creates an `Iterator` returning an interval of the values produced by this `Iterator`.
    *
-   * @param from the index of the first element in this iterator which forms part of the slice.
-   * @param to the index of the first element following the slice.
+   * @param start the index of the first element in this iterator which forms part of the slice.
+   * @param stop the index of the last element following the slice.
    * @return an iterator which advances this iterator past the first `from` elements using `drop`, and then takes
    *         `to - from` elements, using `take`.
    * @note Reuse: $consumesAndProducesIterator
    */
-  override def slice(from: Int, to: Int) ={
-    require(0 <= from, "Must be a positive Integer value.")
+  override def slice(start: Int, stop: Int) ={
+    require(0 <= start, "Must be a positive Integer value.")
+    require(start <= stop, "The sliced range must have a lower bound less than or equal to the upper bound.")
 
-    canBeIncremented = result relative (from)
+    canBeIncremented = result relative (start)
     if (!canBeIncremented) close()
 
     new CloseableIterator[A]{
-      private var until = to - from
+      private var limit = stop - start
 
-      override def hasNext = self.hasNext && 0 <= until
+      override def hasNext = self.hasNext && 0 <= limit
 
       override def next() = if(hasNext){
-        until -= 1
+        limit -= 1
         val output = self next ()
         if(!hasNext) close()
         output
