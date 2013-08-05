@@ -34,6 +34,12 @@ trait Queryable[DBType] {
    */
   def wrap(row: ResultSet) = new RichResultSet(row)
 
+  /**
+   * Takes a [[java.sql.CallableStatement]] and convert it into a [[com.novus.jdbc.StatementResult]] for evaluation by
+   * a function call.
+   *
+   * @param callable The object to be converted
+   */
   def wrap(callable: CallableStatement) = new StatementResult(callable)
 
   /**
@@ -74,6 +80,50 @@ trait Queryable[DBType] {
     }
     catch{
       case ex: Throwable => stmt close (); throw ex
+    }
+  }
+
+  /**
+   * Given a connection and a valid SQL statement, executes the statement against the database and returns the first
+   * value parsed iff that statement produces a non-empty result.
+   *
+   * @param f A transform from a `RichResultSet` to a type `T`
+   * @param query The query string
+   * @param con A database connection object
+   * @tparam T The return type of the query
+   */
+  def one[T](f: RichResultSet => T, query: String)(con: Connection): Option[T] = {
+    val stmt = con createStatement ()
+    try{
+      val rs = wrap(stmt executeQuery query)
+
+      if(rs next ()) Some(f(rs)) else None
+    }
+    finally{
+      stmt close ()
+    }
+  }
+
+  /**
+   * Given a connection and a valid SQL statement, executes the statement against the database and returns the first
+   * value parsed iff that statement produces a non-empty result.
+   *
+   * @param f A transform from a `RichResultSet` to a type `T`
+   * @param query The query string
+   * @param params The query parameters
+   * @param con A database connection object
+   * @tparam T The return type of the query
+   */
+  def one[T](f: RichResultSet => T, query: String, params: Any*)(con: Connection): Option[T] = {
+    val prepared = con prepareStatement formatQuery(query, params: _*)
+    try{
+      statement(prepared, params: _*)
+      val rs = wrap(prepared executeQuery ())
+
+      if(rs next ()) Some(f(rs)) else None
+    }
+    finally{
+      prepared close ()
     }
   }
 
@@ -300,6 +350,15 @@ trait Queryable[DBType] {
    */
   @inline def merge(query: String)(con: Connection): CloseableIterator[Int] = insert(query)(con)
 
+  /**
+   * Given a connection and a valid stored procedure, executes the procedure against the database and returns an
+   * iterator of the parsed [[com.novus.jdbc.RichResultSet]].
+   *
+   * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
+   * @param query The query string
+   * @param con A database connection object
+   * @tparam T The return type of the query
+   */
   def proc[T](f: RichResultSet => T, query: String)(con: Connection): CloseableIterator[T] ={
     val callable = con prepareCall query
     try{
@@ -310,6 +369,16 @@ trait Queryable[DBType] {
     }
   }
 
+  /**
+   * Given a connection, a valid stored procedure and a list of parameters for that procedure, executes the procedure
+   * against the database and returns an iterator of the parsed [[com.novus.jdbc.RichResultSet]].
+   *
+   * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
+   * @param query The query string
+   * @param params The query parameters
+   * @param con A database connection object
+   * @tparam T The return type of the query
+   */
   def proc[T](f: RichResultSet => T, query: String, params: Any*)(con: Connection): CloseableIterator[T] ={
     val callable = con prepareCall formatQuery(query, params: _*)
     try{
@@ -322,6 +391,16 @@ trait Queryable[DBType] {
     }
   }
 
+  /**
+   * Given a connection and a valid stored procedure, executes the procedure against the database and returns the parsed
+   * result.
+   *
+   * @param out The names of the OUT parameters in the stored procedure
+   * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
+   * @param query The query string
+   * @param con A database connection object
+   * @tparam T The return type of the query
+   */
   def proc[T](out: Array[String], f: StatementResult => T, query: String)(con: Connection): T ={
     val callable = con prepareCall query
     try{
@@ -337,6 +416,16 @@ trait Queryable[DBType] {
     }
   }
 
+  /**
+   * Given a connection and a valid stored procedure, executes the procedure against the database and returns the parsed
+   * result.
+   *
+   * @param out The indexes of the OUT parameters in the stored procedure
+   * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
+   * @param query The query string
+   * @param con A database connection object
+   * @tparam T The return type of the query
+   */
   def proc[T](out: Array[Int], f: StatementResult => T, query: String)(con: Connection): T ={
     val callable = con prepareCall query
     try{
@@ -352,6 +441,17 @@ trait Queryable[DBType] {
     }
   }
 
+  /**
+   * Given a connection, a valid stored procedure and a list of parameters, executes the procedure against the database
+   * and returns the parsed result.
+   *
+   * @param out The names of the OUT parameters in the stored procedure
+   * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
+   * @param query The query string
+   * @param params The query paramters
+   * @param con A database connection object
+   * @tparam T The return type of the query
+   */
   def proc[T](out: Array[String], f: StatementResult => T, query: String, params: Any*)(con: Connection): T ={
     val callable = con prepareCall formatQuery(query, params: _*)
     try{
@@ -367,6 +467,17 @@ trait Queryable[DBType] {
     }
   }
 
+  /**
+   * Given a connection, a valid stored procedure and a list of parameters, executes the procedure against the database
+   * and returns the parsed result.
+   *
+   * @param out The indexes of the OUT parameters in the stored procedure
+   * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
+   * @param query The query string
+   * @param params The query paramters
+   * @param con A database connection object
+   * @tparam T The return type of the query
+   */
   def proc[T](out: Array[Int], f: StatementResult => T, query: String, params: Any*)(con: Connection): T ={
     val callable = con prepareCall formatQuery(query, params: _*)
     try{

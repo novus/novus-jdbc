@@ -90,7 +90,7 @@ trait QueryExecutor[DBType] {
     }
     catch {
       case ex: NullPointerException => log error ("{} pool object returned a null connection", this); throw ex
-      case ex: Exception            => log error ("{}, threw exception" format this, ex); throw ex
+      case ex: Exception            => log error ("%s, threw exception" format this, ex); throw ex
     }
     finally {
       if (con != null) con close ()
@@ -110,11 +110,8 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
    * @tparam T The returned type from the query
    */
-  final def selectOne[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): Option[T] = {
-    val res = execute(q, params: _*) { query select (f, q, params: _*) }
-
-    one(res)
-  }
+  final def selectOne[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): Option[T] =
+    execute(q, params: _*) { query one (f, q, params: _*) }
 
   /**
    * Execute a query and transform only the head of the [[com.novus.jdbc.RichResultSet]]. If this query would produce
@@ -124,24 +121,8 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
    * @tparam T The returned type from the query
    */
-  final def selectOne[T](q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): Option[T] ={
-    val res = execute(q){ query select (f, q) }
-
-    one(res)
-  }
-
-  /**
-   * Given the products of an executed query, transforms only the first result using the supplied function `f`.
-   *
-   * @param res The [[com.novus.jdbc.CloseableIterator]] produced from the query
-   * @tparam T The return type from the query
-   */
-  final private def one[T](res: CloseableIterator[T]): Option[T] = try {
-    if (res.hasNext) Some(res next ()) else None
-  }
-  finally{
-    res close ()
-  }
+  final def selectOne[T](q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): Option[T] =
+    execute(q){ query one (f, q) }
 
   /**
    * Execute a query and yield a [[com.novus.jdbc.CloseableIterator]] which, as consumed, will progress through the
@@ -238,7 +219,7 @@ trait QueryExecutor[DBType] {
    *
    * @param columns The index of each column which represents the auto generated key
    * @param q The query statement
-   * @param f A transform from a `RichResultSet` to a type `T`
+   * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
    * @tparam T The return type of the query
    */
   final def insert[T](columns: Array[String], q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
@@ -298,21 +279,72 @@ trait QueryExecutor[DBType] {
    */
   final def merge(q: String)(implicit query: Queryable[DBType]): CloseableIterator[Int] = execute(q) { query merge q }
 
+  /**
+   * Execute a stored procedure and yield a [[com.novus.jdbc.CloseableIterator]] which, as consumed, will progress
+   * through the underlying [[com.novus.jdbc.RichResultSet]] and lazily evaluate the argument function.
+   *
+   * @param q The query statement
+   * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
+   * @tparam T The return type of the query
+   */
   final def proc[T](q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
     execute(q){ query proc (f, q) }
 
+  /**
+   * Execute a stored procedure and yield a [[com.novus.jdbc.CloseableIterator]] which, as consumed, will progress
+   * through the underlying [[com.novus.jdbc.RichResultSet]] and lazily evaluate the argument function.
+   *
+   * @param q The query statement
+   * @param params The query parameters
+   * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
+   * @tparam T The return type of the query
+   */
   final def proc[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
     execute(q, params: _*){ query proc (f, q, params: _*) }
 
+  /**
+   * Execute a stored procedure containing OUT parameters, yield the resolution of those parameters.
+   *
+   * @param out The query OUT parameters
+   * @param q The query statement
+   * @param f A transform from a [[com.novus.jdbc.StatementResult]] to a type `T`
+   * @tparam T The return type of the query
+   */
   final def proc[T](out: Array[Int], q: String)(f: StatementResult => T)(implicit query: Queryable[DBType]): T =
     execute(q) { query proc (out, f, q) }
 
+  /**
+   * Execute a stored procedure containing OUT parameters, yield the resolution of those parameters.
+   *
+   * @param out The query OUT parameters
+   * @param q The query statement
+   * @param f A transform from a [[com.novus.jdbc.StatementResult]] to a type `T`
+   * @tparam T The return type of the query
+   */
   final def proc[T](out: Array[String], q: String)(f: StatementResult => T)(implicit query: Queryable[DBType]): T =
     execute(q) { query proc (out, f, q) }
 
+  /**
+   * Execute a stored procedure containing OUT parameters, yield the resolution of those parameters.
+   *
+   * @param out The query OUT parameters
+   * @param q The query statement
+   * @param params The query parameters
+   * @param f A transform from a [[com.novus.jdbc.StatementResult]] to a type `T`
+   * @tparam T The return type of the query
+   */
   final def proc[T](out: Array[Int], q: String, params: Any*)(f: StatementResult => T)(implicit query: Queryable[DBType]): T =
     execute(q, params: _*) { query proc (out, f, q, params: _*) }
 
+  /**
+   * Execute a stored procedure containing OUT parameters, yield the resolution of those parameters.
+   *
+   * @param out The query OUT parameters
+   * @param q The query statement
+   * @param params The query parameters
+   * @param f A transform from a [[com.novus.jdbc.StatementResult]] to a type `T`
+   * @tparam T The return type of the query
+   */
   final def proc[T](out: Array[String], q: String, params: Any*)(f: StatementResult => T)(implicit query: Queryable[DBType]): T =
     execute(q, params: _*) { query proc (out, f, q, params: _*) }
 
