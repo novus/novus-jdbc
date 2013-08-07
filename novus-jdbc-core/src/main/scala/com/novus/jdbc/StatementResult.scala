@@ -23,6 +23,13 @@ import java.math.BigDecimal
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 
+/**
+ * An extraction class for working with the OUT parameters of a stored procedure. Wraps "get" function calls of the
+ * underlying [[java.sql.CallableStatement]] and includes additional methods for working with nullable fields.
+
+ * @since 0.9
+ * @param callable A reference to the statement object
+ */
 class StatementResult(callable: CallableStatement){ //doesn't extend CallableStatement so they can make queries in queries
 
   def getDouble(column: String): Double = checkNaN(callable getDouble (column), java.lang.Double.NaN)

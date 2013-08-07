@@ -15,91 +15,22 @@
  */
 package com.novus.jdbc
 
-import java.sql.{SQLException, Connection}
-import org.slf4j.LoggerFactory
+import java.sql.{Savepoint, Connection}
 
 /**
- * The container object for an underlying database connection pool. All queries are both timed and logged to an
- * [[org.slf4j.Logger]] which must be configured to the actual logging framework. It is assumed, although not enforced
- * at compile time, that all statements are DML queries. Implementations of `QueryExecutor` must define the #connection
- * and the #shutdown methods.
+ * Represents a means of executing a number of queries which are not committed to the database and can at any point be
+ * reverted using the #rollback member function.
  *
- * @since 0.1
+ * @since 0.9
+ * @param con A reference to a database connection
+ * @param savePoint The point at which all queries made using this object will be rolled back to
+ * @param query The [[com.novus.jdbc.Queryable]] for the `DBType`.
  * @tparam DBType The database type
- *
- * @note Warning: Does not work properly with parameter objects that can only be traversed once.
  */
-trait QueryExecutor[DBType] {
-  val log = LoggerFactory getLogger this.getClass
+class SavePoint[DBType](con: Connection, savePoint: Savepoint, query: Queryable[DBType]){
+  self =>
 
-  /** Obtain a connection from the underlying connection pool */
-  protected def connection(): Connection
-
-  /**
-   * Responsible for obtaining and returning a DB connection from the connection pool to execute the given query
-   * function.
-   *
-   * @param q The query statement
-   * @param params The query parameters
-   * @param f Any one of the select, update, delete or merge commands
-   * @tparam T The return type of the query
-   */
-  @inline final protected def execute[T](q: String, params: Any*)(f: Connection => T): T ={
-    val msg = """
-      QUERY:  %s
-      PARAMS: %s
-    """ format (q, params mkString (", "))
-
-    executeQuery(msg, f)
-  }
-
-  /**
-   * Responsible for obtaining and returning a DB connection from the connection pool to execute the given query
-   * function.
-   *
-   * @param q The query statement
-   * @param f Any one of the select, update, delete or merge commands
-   * @tparam T The return type of the query
-   */
-  @inline final protected def execute[T](q: String)(f: Connection => T): T ={
-    val msg = """
-      QUERY:  %s
-    """ format q
-
-    executeQuery(msg, f)
-  }
-
-  /**
-   * Responsible for obtaining and returning a DB connection from the connection pool to execute the given query
-   * function.
-   *
-   * @param msg The timing message
-   * @param f Any one of the select, update, delete or merge commands
-   * @tparam T The return type of the query
-   */
-  final private def executeQuery[T](msg: String, f: Connection => T): T = {
-    val now = System.currentTimeMillis
-    val con = connection()
-    try {
-      val output = f(con)
-      val later = System.currentTimeMillis
-
-      log info ("Timed: {} timed for {} ms", msg, later - now)
-
-      output
-    }
-    catch {
-      case ex: NullPointerException => log error ("{} pool object returned a null connection", this); throw ex
-      case ex: Exception            => log error ("%s, threw exception" format this, ex); throw ex
-    }
-    finally {
-      if (con != null) con close ()
-    }
-  }
-
-  /** Returns an iterator containing update counts. */
-  final def executeBatch[I <: Seq[Any]](batchSize: Int = 1000)(q: String, params: Iterator[I])(implicit query: Queryable[DBType]): Iterator[Int] =
-    execute(q, params) { query.executeBatch(batchSize)(q, params) }
+  protected def store[T](f: Connection => T): T = f(con)
 
   /**
    * Execute a query and transform only the head of the `RichResultSet`. If this query would produce multiple results,
@@ -110,8 +41,8 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
    * @tparam T The returned type from the query
    */
-  final def selectOne[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): Option[T] =
-    execute(q, params: _*) { query one (f, q, params: _*) }
+  final def selectOne[T](q: String, params: Any*)(f: RichResultSet => T): Option[T] =
+    store{ query one (f, q, params: _*) }
 
   /**
    * Execute a query and transform only the head of the [[com.novus.jdbc.RichResultSet]]. If this query would produce
@@ -121,8 +52,7 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
    * @tparam T The returned type from the query
    */
-  final def selectOne[T](q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): Option[T] =
-    execute(q){ query one (f, q) }
+  final def selectOne[T](q: String)(f: RichResultSet => T): Option[T] = store{ query one (f, q) }
 
   /**
    * Execute a query and yield a [[com.novus.jdbc.CloseableIterator]] which, as consumed, will progress through the
@@ -133,8 +63,8 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
    * @tparam T The returned type from the query
    */
-  final def select[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
-    execute(q, params: _*) { query select (f, q, params: _*) }
+  final def select[T](q: String, params: Any*)(f: RichResultSet => T): CloseableIterator[T] =
+    store{ query select (f, q, params: _*) }
 
   /**
    * Execute a query and yield a [[com.novus.jdbc.CloseableIterator]] which, as consumed, will progress through the
@@ -144,24 +74,22 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a `RichResultSet` to a type `T`
    * @tparam T The returned type from the query
    */
-  final def select[T](q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
-    execute(q) { query select (f, q) }
+  final def select[T](q: String)(f: RichResultSet => T): CloseableIterator[T] = store { query select (f, q) }
 
   /**
    * Eagerly evaluates the argument function against the returned [[com.novus.jdbc.RichResultSet]].
    *
    * @see #select
    */
-  final def eagerlySelect[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): List[T] =
-    select(q, params: _*)(f)(query).toList
+  final def eagerlySelect[T](q: String, params: Any*)(f: RichResultSet => T): List[T] =
+    select(q, params: _*)(f).toList
 
   /**
    * Eagerly evaluates the argument function against the returned `RichResultSet`.
    *
    * @see #select
    */
-  final def eagerlySelect[T](q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): List[T] =
-    select(q)(f)(query).toList
+  final def eagerlySelect[T](q: String)(f: RichResultSet => T): List[T] = select(q)(f).toList
 
   /**
    * Returns an iterator containing the ID column of the rows which were inserted by this insert statement.
@@ -169,8 +97,7 @@ trait QueryExecutor[DBType] {
    * @param q The query statement
    * @param params The query parameters
    */
-  final def insert(q: String, params: Any*)(implicit query: Queryable[DBType]): CloseableIterator[Int] =
-    execute(q, params: _*) { query insert (q, params: _*) }
+  final def insert(q: String, params: Any*): CloseableIterator[Int] = store{ query insert (q, params: _*) }
 
   /**
    * Returns an iterator containing the compound index column of the rows which were inserted by this insert statement.
@@ -181,8 +108,8 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
    * @tparam T The return type of the query
    */
-  final def insert[T](columns: Array[Int], q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
-    execute(q, params: _*){ query insert (columns, f, q, params: _*) }
+  final def insert[T](columns: Array[Int], q: String, params: Any*)(f: RichResultSet => T): CloseableIterator[T] =
+    store{ query insert (columns, f, q, params: _*) }
 
   /**
    * Returns an iterator containing the compound index column of the rows which were inserted by this insert statement.
@@ -193,15 +120,15 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a `RichResultSet` to a type `T`
    * @tparam T The return type of the query
    */
-  final def insert[T](columns: Array[String], q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
-    execute(q, params: _*){ query insert (columns, f, q, params: _*) }
+  final def insert[T](columns: Array[String], q: String, params: Any*)(f: RichResultSet => T): CloseableIterator[T] =
+    store{ query insert (columns, f, q, params: _*) }
 
   /**
    * Returns an iterator containing the ID column of the rows which were inserted by this insert statement.
    *
    * @param q The query statement
    */
-  final def insert(q: String)(implicit query: Queryable[DBType]): CloseableIterator[Int] = execute(q) { query insert q }
+  final def insert(q: String): CloseableIterator[Int] = store { query insert q }
 
   /**
    * Returns an iterator containing the compound index column of the rows which were inserted by this insert statement.
@@ -211,8 +138,8 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a `RichResultSet` to a type `T`
    * @tparam T The return type of the query
    */
-  final def insert[T](columns: Array[Int], q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
-    execute(q){ query insert (columns, f, q) }
+  final def insert[T](columns: Array[Int], q: String)(f: RichResultSet => T): CloseableIterator[T] =
+    store{ query insert (columns, f, q) }
 
   /**
    * Returns an iterator containing the compound index column of the rows which were inserted by this insert statement.
@@ -222,8 +149,8 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
    * @tparam T The return type of the query
    */
-  final def insert[T](columns: Array[String], q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
-    execute(q){ query insert (columns, f, q) }
+  final def insert[T](columns: Array[String], q: String)(f: RichResultSet => T): CloseableIterator[T] =
+    store{ query insert (columns, f, q) }
 
   /**
    * Returns the row count updated by this SQL statement. If the SQL statement is not a row update operation, such as a
@@ -232,8 +159,7 @@ trait QueryExecutor[DBType] {
    * @param q The query statement
    * @param params The query parameters
    */
-  final def update(q: String, params: Any*)(implicit query: Queryable[DBType]): Int =
-    execute(q, params: _*) { query update (q, params: _*) }
+  final def update(q: String, params: Any*): Int = store{ query update (q, params: _*) }
 
   /**
    * Returns the row count updated by this SQL statement. If the SQL statement is not a row update operation, such as a
@@ -241,7 +167,7 @@ trait QueryExecutor[DBType] {
    *
    * @param q The query statement
    */
-  final def update(q: String)(implicit query: Queryable[DBType]): Int = execute(q) { query update q }
+  final def update(q: String): Int = store { query update q }
 
   /**
    * Returns the row count deleted by this SQL statement.
@@ -249,15 +175,14 @@ trait QueryExecutor[DBType] {
    * @param q The query statement
    * @param params The query parameters
    */
-  final def delete(q: String, params: Any*)(implicit query: Queryable[DBType]): Int =
-    execute(q, params: _*) { query delete (q, params: _*) }
+  final def delete(q: String, params: Any*): Int = store{ query delete (q, params: _*) }
 
   /**
    * Returns the row count deleted by this SQL statement.
    *
    * @param q The query statement
    */
-  final def delete(q: String)(implicit query: Queryable[DBType]): Int = execute(q) { query delete q }
+  final def delete(q: String): Int = store { query delete q }
 
   /**
    * Returns an iterator containing the ID column which was inserted as a result of the merge statement. If this merge
@@ -267,8 +192,7 @@ trait QueryExecutor[DBType] {
    * @param q The query statement
    * @param params The query parameters
    */
-  final def merge(q: String, params: Any*)(implicit query: Queryable[DBType]): CloseableIterator[Int] =
-    execute(q, params: _*) { query merge (q, params: _*) }
+  final def merge(q: String, params: Any*): CloseableIterator[Int] = store{ query merge (q, params: _*) }
 
   /**
    * Returns an iterator containing the ID column which was inserted as a result of the merge statement. If this merge
@@ -277,7 +201,7 @@ trait QueryExecutor[DBType] {
    *
    * @param q The query statement
    */
-  final def merge(q: String)(implicit query: Queryable[DBType]): CloseableIterator[Int] = execute(q) { query merge q }
+  final def merge(q: String): CloseableIterator[Int] = store { query merge q }
 
   /**
    * Execute a stored procedure and yield a [[com.novus.jdbc.CloseableIterator]] which, as consumed, will progress
@@ -287,8 +211,7 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
    * @tparam T The return type of the query
    */
-  final def proc[T](q: String)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
-    execute(q){ query proc (f, q) }
+  final def proc[T](q: String)(f: RichResultSet => T): CloseableIterator[T] = store{ query proc (f, q) }
 
   /**
    * Execute a stored procedure and yield a [[com.novus.jdbc.CloseableIterator]] which, as consumed, will progress
@@ -299,8 +222,8 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a [[com.novus.jdbc.RichResultSet]] to a type `T`
    * @tparam T The return type of the query
    */
-  final def proc[T](q: String, params: Any*)(f: RichResultSet => T)(implicit query: Queryable[DBType]): CloseableIterator[T] =
-    execute(q, params: _*){ query proc (f, q, params: _*) }
+  final def proc[T](q: String, params: Any*)(f: RichResultSet => T): CloseableIterator[T] =
+    store{ query proc (f, q, params: _*) }
 
   /**
    * Execute a stored procedure containing OUT parameters, yield the resolution of those parameters.
@@ -310,8 +233,7 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a [[com.novus.jdbc.StatementResult]] to a type `T`
    * @tparam T The return type of the query
    */
-  final def proc[T](out: Array[Int], q: String)(f: StatementResult => T)(implicit query: Queryable[DBType]): T =
-    execute(q) { query proc (out, f, q) }
+  final def proc[T](out: Array[Int], q: String)(f: StatementResult => T): T = store { query proc (out, f, q) }
 
   /**
    * Execute a stored procedure containing OUT parameters, yield the resolution of those parameters.
@@ -321,20 +243,7 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a [[com.novus.jdbc.StatementResult]] to a type `T`
    * @tparam T The return type of the query
    */
-  final def proc[T](out: Array[String], q: String)(f: StatementResult => T)(implicit query: Queryable[DBType]): T =
-    execute(q) { query proc (out, f, q) }
-
-  /**
-   * Execute a stored procedure containing OUT parameters, yield the resolution of those parameters.
-   *
-   * @param out The query OUT parameters
-   * @param q The query statement
-   * @param params The query parameters
-   * @param f A transform from a [[com.novus.jdbc.StatementResult]] to a type `T`
-   * @tparam T The return type of the query
-   */
-  final def proc[T](out: Array[Int], q: String, params: Any*)(f: StatementResult => T)(implicit query: Queryable[DBType]): T =
-    execute(q, params: _*) { query proc (out, f, q, params: _*) }
+  final def proc[T](out: Array[String], q: String)(f: StatementResult => T): T = store { query proc (out, f, q) }
 
   /**
    * Execute a stored procedure containing OUT parameters, yield the resolution of those parameters.
@@ -345,45 +254,68 @@ trait QueryExecutor[DBType] {
    * @param f A transform from a [[com.novus.jdbc.StatementResult]] to a type `T`
    * @tparam T The return type of the query
    */
-  final def proc[T](out: Array[String], q: String, params: Any*)(f: StatementResult => T)(implicit query: Queryable[DBType]): T =
-    execute(q, params: _*) { query proc (out, f, q, params: _*) }
+  final def proc[T](out: Array[Int], q: String, params: Any*)(f: StatementResult => T): T =
+    store{ query proc (out, f, q, params: _*) }
 
   /**
-   * Execute a series of statements without committing them to the database until every single statement was successful.
-   * Allows for all statements to be rolled back at the event of an exception or at any point of the transaction.
+   * Execute a stored procedure containing OUT parameters, yield the resolution of those parameters.
    *
-   * @param f a transform from a [[com.novus.jdbc.SavePoint]] to a type `T`
-   * @tparam T The return type of the transaction
+   * @param out The query OUT parameters
+   * @param q The query statement
+   * @param params The query parameters
+   * @param f A transform from a [[com.novus.jdbc.StatementResult]] to a type `T`
+   * @tparam T The return type of the query
    */
-  final def transaction[T](f: SavePoint[DBType] => T)(implicit query: Queryable[DBType]): T ={
-    val con = connection()
-    try{
-      con setAutoCommit false
-      val out = f(new SavePoint[DBType](con, con setSavepoint (), query))
-      con commit ()
+  final def proc[T](out: Array[String], q: String, params: Any*)(f: StatementResult => T): T =
+    store{ query proc (out, f, q, params: _*) }
 
-      out
-    }
-    catch{
-      case ex: NullPointerException => log error ("{} pool object returned a null connection", this); throw ex
-      case ex: Exception =>
-        try{
-          con rollback ()
-        }
-        catch{
-          case ex: SQLException => log error ("Unable to rollback transaction", ex)
-        }
-        log error ("%s, threw exception" format this, ex)
-        throw ex
-    }
-    finally{
-      if(con != null){
-        con setAutoCommit true
-        con close ()
-      }
+  /**
+   * Creates a new `SavePoint` branching off from the parent. This new `SavePoint` will itself rollback to the parent
+   * `SavePoint`.
+   */
+  final def save(): SavePoint[DBType] ={
+    val that = con setSavepoint ()
+    new SavePoint(con, that, query){
+      override def rollback() = self rollback that
     }
   }
 
-  /** Shuts down the underlying connection pool. Should be called before this object is garbage collected. */
-  def shutdown()
+  /**
+   * Creates a new `SavePoint` branching off from the parent. This new `SavePoint` will itself rollback to the parent
+   * `SavePoint`.
+   *
+   * @param name Allows the generated `SavePoint` to be named
+   */
+  final def save(name: String): SavePoint[DBType] ={
+    val that = con setSavepoint name
+    new SavePoint(con, that, query){
+      override def rollback() = self rollback that
+      override def toString() = "SavePoint(%s)" format name
+    }
+  }
+
+  /**
+   * Rolls this `SavePoint` back to the passed in argument.
+   *
+   * @param point the place to rollback to
+   */
+  protected def rollback(point: Savepoint): SavePoint[DBType] ={
+    con rollback point
+
+    new SavePoint(con, savePoint, query)
+  }
+
+  /**
+   * Rolls all transactions back to the start of this `SavePoint`.
+   *
+   * @note All child `SavePoint` are subsequently rolled back as well. Do not call this method and then attempt to use a
+   *       child afterwards, a [[java.sql.SQLException]] will be thrown.
+   */
+  def rollback(): SavePoint[DBType] ={
+    con rollback savePoint
+
+    new SavePoint(con, con setSavepoint (), query)
+  }
+
+  override def toString() = "SavePoint"
 }
