@@ -359,7 +359,7 @@ trait QueryExecutor[DBType] {
     val con = connection()
     try{
       con setAutoCommit false
-      val out = f(new SavePoint[DBType](con, con setSavepoint (), query))
+      val out = f(SavePoint(con, con setSavepoint (), query))
       con commit ()
 
       out

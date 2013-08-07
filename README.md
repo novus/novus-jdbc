@@ -15,7 +15,7 @@ This library aims to follow the tenets of KISS (Keep it simple, stupid.) As a co
  * Database specific JDBC code is imported implicitly via a public and overrideable type class.
  * `Option`, `Either`, and `Iterable` in query arguments handled without the end user needing to adjust the query string.
  * A more powerful `ResultSet`; includes methods to aid in working with NULL fields, sane defaults for numeric types and methods for extracting [Joda-Time].
- * Works well in existing projects which may have already chosen which connection pool and configuration to use.
+ * Works well in existing projects which may have already chosen a connection pool and pool configuration but want a more Scala-centric JDBC connection layer.
  * Logging of all queries through an [slf4j] interface. Includes an optional implementation of a configurable [Logback] slow query filter.
  * Built-in connection pool resource and exception handling.*
 
@@ -62,10 +62,8 @@ For those wishing to migrate away from Querulous, it is suggested to first repla
 
 #### Future Plans
 
- 1. Support for transactions.
- 2. Support for stored procedures.
- 3. More databases
- 4. Default insertion logic of Joda's `DateTime` objects.
+ 1. More databases
+ 2. Default insertion logic of Joda's `DateTime` objects.
 
 ## Alternatives
 

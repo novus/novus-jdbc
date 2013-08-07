@@ -23,11 +23,11 @@ import java.sql.{Savepoint, Connection}
  *
  * @since 0.9
  * @param con A reference to a database connection
- * @param savePoint The point at which all queries made using this object will be rolled back to
+ * @param savePoints The list of save points which can be rolled back to, starting with the head
  * @param query The [[com.novus.jdbc.Queryable]] for the `DBType`.
  * @tparam DBType The database type
  */
-class SavePoint[DBType](con: Connection, savePoint: Savepoint, query: Queryable[DBType]){
+class SavePoint[DBType](con: Connection, savePoints: List[Savepoint], query: Queryable[DBType]){
   self =>
 
   protected def store[T](f: Connection => T): T = f(con)
@@ -275,9 +275,7 @@ class SavePoint[DBType](con: Connection, savePoint: Savepoint, query: Queryable[
    */
   final def save(): SavePoint[DBType] ={
     val that = con setSavepoint ()
-    new SavePoint(con, that, query){
-      override def rollback() = self rollback that
-    }
+    new SavePoint(con, that :: savePoints, query)
   }
 
   /**
@@ -288,21 +286,9 @@ class SavePoint[DBType](con: Connection, savePoint: Savepoint, query: Queryable[
    */
   final def save(name: String): SavePoint[DBType] ={
     val that = con setSavepoint name
-    new SavePoint(con, that, query){
-      override def rollback() = self rollback that
+    new SavePoint(con, that :: savePoints, query){
       override def toString() = "SavePoint(%s)" format name
     }
-  }
-
-  /**
-   * Rolls this `SavePoint` back to the passed in argument.
-   *
-   * @param point the place to rollback to
-   */
-  protected def rollback(point: Savepoint): SavePoint[DBType] ={
-    con rollback point
-
-    new SavePoint(con, savePoint, query)
   }
 
   /**
@@ -311,11 +297,19 @@ class SavePoint[DBType](con: Connection, savePoint: Savepoint, query: Queryable[
    * @note All child `SavePoint` are subsequently rolled back as well. Do not call this method and then attempt to use a
    *       child afterwards, a [[java.sql.SQLException]] will be thrown.
    */
-  def rollback(): SavePoint[DBType] ={
-    con rollback savePoint
-
-    new SavePoint(con, con setSavepoint (), query)
+  def rollback(): SavePoint[DBType] = savePoints match{
+    case Nil =>
+      con rollback ()
+      SavePoint(con, con setSavepoint (), query)
+    case head :: tail =>
+      con rollback head
+      new SavePoint(con, tail, query)
   }
 
   override def toString() = "SavePoint"
+}
+
+object SavePoint {
+  def apply[DBType](con: Connection, savePoint: Savepoint, query: Queryable[DBType]) =
+    new SavePoint[DBType](con, savePoint :: Nil, query)
 }
