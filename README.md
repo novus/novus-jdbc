@@ -21,7 +21,11 @@ This library aims to follow the tenets of KISS (Keep it simple, stupid.) As a co
 
 ## API Overview
 
-There are six main API calls which mimic the standard CRUD nomenclature:
+There are five main API calls which mimic the standard CRUD nomenclature (SELECT, UPDATE, INSERT, DELETE, and MERGE.) There are two main methods for working with stored procs, including support for OUT parameters as well as direct query results. Finally, transaction support has been built in exposing the concept of a JDBC save point.
+
+#### CRUD Operations
+
+In addition to the five standard crud ops, Novus-JDBC provides several convenience functions. Included in the library are eagerly evaluated select methods, a selectOne method and support for insertion into tables with multi-column, auto-generated, compound primary keys.
 
  1. insert - returns an Iterator containing the values of the ID column of all inserted values
 ```
@@ -52,9 +56,22 @@ val count = executor update ("UPDATE foo SET bar=? WHERE baz=?", 42, 42)
 val count = executor delete ("DELETE FROM myTable WHERE thing <> 42")
 ```
 
- 6. merge - returns an Iterator containing the value of the ID column of all inserted values 
+ 6. merge - returns an Iterator containing the value of the ID column of all inserted values
 
-There are also eagerly evaluated select methods and support for insertion into tables with multi-column, auto-generated, compound primary keys.
+#### Stored Procedures
+
+Stored procs are accessible from the "proc" method. There are two main supported styles: those that return a standard `ResultSet` and those that return OUT parameters
+
+  1. standard - returns an Iterator containing the result of the stored procedure
+```
+val out = executor.proc("EXEC myProc", 1, 2, 3){ _ getInt "that" }
+```
+  2. OUT parameters
+```
+val out = executor.proc(Array("foo","bar"), "EXEC myProc"){ stmt =>
+  MyCaseClass(stmt getInt "foo", stmt getString "bar")
+}
+```
 
 #### Migrating from Querulous
 
