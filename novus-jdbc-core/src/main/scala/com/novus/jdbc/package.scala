@@ -23,6 +23,7 @@ object `package`{
   type SqlServer = com.novus.jdbc.sqlserver.SqlServer
   type HSQL = com.novus.jdbc.hsql.HSQL
   type H2 = com.novus.jdbc.h2.H2
+  type Postgres = com.novus.jdbc.postgres.Postgres
 
   /**
    * Helper method to ensure that `close` is called after using a `CloseableIterator` within a function.
