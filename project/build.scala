@@ -38,16 +38,22 @@ object NovusjdbcBuild extends sbt.Build {
         "joda-time" % "joda-time" % "2.1",
         "org.joda" % "joda-convert" % "1.2" % "compile",
         "org.hsqldb" % "hsqldb" % "2.2.9" % "test",
-        "com.h2database" % "h2" % "1.3.172" % "test"
+        "com.h2database" % "h2" % "1.3.172" % "test",
+        "org.xerial" % "sqlite-jdbc" % "3.7.15-M1" % "test",
+        "ch.qos.logback" % "logback-classic" % "1.0.9" % "test"
     ) ++ Shared.specsDep(v))))
 
   lazy val novusJdbcBonecp = Project(
     id = "novus-jdbc-bonecp",
     base = file("novus-jdbc-bonecp"),
-    settings = baseSettings ++ Seq(libraryDependencies <++= scalaVersion (v => Seq(
-        "com.jolbox" % "bonecp" % "0.7.1.RELEASE"
-    ))))
-    .dependsOn(novusJdbc)
+    settings = baseSettings ++ Seq(libraryDependencies <++= scalaVersion(v => Seq(
+      "com.jolbox" % "bonecp" % "0.7.1.RELEASE",
+      "org.xerial" % "sqlite-jdbc" % "3.7.15-M1" % "test",
+      "ch.qos.logback" % "logback-classic" % "1.0.9" % "test"
+    ) ++ Shared.specsDep(v))) ++ Seq(
+      parallelExecution in Test := false
+    )
+  ).dependsOn(novusJdbc)
 
   lazy val novusJdbcDBCP = Project(
     id = "novus-jdbc-dbcp",

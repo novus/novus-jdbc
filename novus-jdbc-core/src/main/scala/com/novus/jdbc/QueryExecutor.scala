@@ -70,6 +70,71 @@ trait QueryExecutor[DBType] {
   }
 
   /**
+   * Allow caller to execute statements.
+   * @param q The query statement to execute
+   * @return <code>true</code> if the first result is a <code>ResultSet</code>
+   *         object; <code>false</code> if it is an update count or there are
+   *         no results
+   */
+  @inline final def executeStatement(q: String): Boolean = {
+    val now = System.currentTimeMillis
+    val con = connection()
+    try {
+      val output = {
+        val stmt = con.createStatement()
+        stmt.execute(q)
+      }
+      val later = System.currentTimeMillis
+
+      log info("Timed: {} timed for {} ms", """
+                                              |           QUERY: %s
+                                              |          RESULT: %s
+                                            """.stripMargin.format(q, output), later - now)
+
+      output
+    }
+    catch {
+      case ex: NullPointerException => log error("{} pool object returned a null connection", this); throw ex
+      case ex: Exception => log error("%s, threw exception" format this, ex); throw ex
+    }
+    finally {
+      if (con != null) con close()
+    }
+  }
+
+  /**
+   * Allow caller to execute update statements.
+   * @param q The query statement to execute
+   * @return either (1) the row count for SQL Data Manipulation Language (DML) statements
+   *         or (2) 0 for SQL statements that return nothing
+   */
+  @inline final def executeUpdate(q: String): Int = {
+    val now = System.currentTimeMillis
+    val con = connection()
+    try {
+      val output = {
+        val stmt = con.createStatement()
+        stmt.executeUpdate(q)
+      }
+      val later = System.currentTimeMillis
+
+      log info("Timed: {} timed for {} ms", """
+                                              |           QUERY: %s
+                                              |          RESULT: %s
+                                            """.stripMargin.format(q, output), later - now)
+
+      output
+    }
+    catch {
+      case ex: NullPointerException => log error("{} pool object returned a null connection", this); throw ex
+      case ex: Exception => log error("%s, threw exception" format this, ex); throw ex
+    }
+    finally {
+      if (con != null) con close()
+    }
+  }
+
+  /**
    * Responsible for obtaining and returning a DB connection from the connection pool to execute the given query
    * function.
    *

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="false" debug="false">
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%.-3p [%d{yyyyMMdd-HH:mm:ss.SSS}] [%.4t] %c{1} %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="nv-log-novus-jdbc" class="ch.qos.logback.core.FileAppender">
+        <File>/nv/log/novus-jdbc.log</File>
+        <encoder>
+            <pattern>%.-3p ${HOSTNAME} [%d{yyyyMMdd-HH:mm:ss.SSS}] [%.4t] %c{1} %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="akka" level="INFO"/>
+    <logger name="ch.qos" level="ERROR"/>
+    <logger name="com.novus" level="DEBUG"/>
+    <logger name="com.novus.jdbc" level="TRACE"/>
+    <logger name="org.xerial" level="TRACE"/>
+    <logger name="com.jolbox.bonecp.StatementHandle" level="INFO"/>
+
+
+    <!--<logger name="com.novus.jdbc" level="DEBUG" additivity="false">-->
+        <!--<appender-ref ref="var-log-query"/>-->
+        <!--<appender-ref ref="cluster-log-query"/>-->
+        <!--<appender-ref ref="var-slow-query" />-->
+    <!--</logger>-->
+
+    <root level="ERROR">
+        <appender-ref ref="stdout"/>
+        <appender-ref ref="nv-log-novus-jdbc"/>
+    </root>
+</configuration>
