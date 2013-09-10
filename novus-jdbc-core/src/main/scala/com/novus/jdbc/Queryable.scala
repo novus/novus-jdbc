@@ -351,6 +351,39 @@ trait Queryable[DBType] {
   @inline def merge(query: String)(con: Connection): CloseableIterator[Int] = insert(query)(con)
 
   /**
+   * Given a connection, executes the query against the database.
+   *
+   * @param query The query string
+   * @param con A database connection object
+   */
+  def execute(query: String)(con: Connection) {
+    val stmt = con createStatement ()
+    try{
+      stmt execute query
+    }
+    finally {
+      stmt close ()
+    }
+  }
+
+  /**
+   * Given a connection, executes the query against the database.
+   *
+   * @param query The query string
+   * @param params The query parameters.
+   * @param con A database connection object
+   */
+  def execute(query: String, params: Any*)(con: Connection) {
+    val prepared = con prepareStatement formatQuery(query, params: _*)
+    try{
+      statement(prepared, params: _*) execute ()
+    }
+    finally {
+      prepared close ()
+    }
+  }
+
+  /**
    * Given a connection and a valid stored procedure, executes the procedure against the database and returns an
    * iterator of the parsed [[com.novus.jdbc.RichResultSet]].
    *

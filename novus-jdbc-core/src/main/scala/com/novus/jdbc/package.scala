@@ -19,11 +19,13 @@ object `package`{
   import com.novus.jdbc.sqlserver._
   import com.novus.jdbc.hsql._
   import com.novus.jdbc.h2._
+  import com.novus.jdbc.sqlite._
 
   type SqlServer = com.novus.jdbc.sqlserver.SqlServer
   type HSQL = com.novus.jdbc.hsql.HSQL
   type H2 = com.novus.jdbc.h2.H2
   type Postgres = com.novus.jdbc.postgres.Postgres
+  type Sqlite = com.novus.jdbc.sqlite.Sqlite
 
   /**
    * Helper method to ensure that `close` is called after using a `CloseableIterator` within a function.

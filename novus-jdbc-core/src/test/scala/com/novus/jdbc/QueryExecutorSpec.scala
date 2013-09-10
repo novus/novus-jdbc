@@ -29,8 +29,6 @@ class QueryExecutorSpec extends Specification{
     def shutdown(){}
   }
 
-  Class.forName("org.h2.Driver")
-
   "select" should {
     val connect = con()
     val stmt = connect createStatement ()

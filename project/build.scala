@@ -37,22 +37,15 @@ object NovusjdbcBuild extends sbt.Build {
         "org.slf4j" % "slf4j-api" % "1.7.2",
         "joda-time" % "joda-time" % "2.1",
         "org.joda" % "joda-convert" % "1.2" % "compile",
-        "org.hsqldb" % "hsqldb" % "2.2.9" % "test",
-        "com.h2database" % "h2" % "1.3.172" % "test",
-        "org.xerial" % "sqlite-jdbc" % "3.7.15-M1" % "test",
-        "ch.qos.logback" % "logback-classic" % "1.0.9" % "test"
+        "org.hsqldb" % "hsqldb" % "2.2.9" % "test"
     ) ++ Shared.specsDep(v))))
 
   lazy val novusJdbcBonecp = Project(
     id = "novus-jdbc-bonecp",
     base = file("novus-jdbc-bonecp"),
     settings = baseSettings ++ Seq(libraryDependencies <++= scalaVersion(v => Seq(
-      "com.jolbox" % "bonecp" % "0.7.1.RELEASE",
-      "org.xerial" % "sqlite-jdbc" % "3.7.15-M1" % "test",
-      "ch.qos.logback" % "logback-classic" % "1.0.9" % "test"
-    ) ++ Shared.specsDep(v))) ++ Seq(
-      parallelExecution in Test := false
-    )
+      "com.jolbox" % "bonecp" % "0.7.1.RELEASE"
+    ) ++ Shared.specsDep(v)))
   ).dependsOn(novusJdbc)
 
   lazy val novusJdbcDBCP = Project(
@@ -88,7 +81,7 @@ object NovusjdbcBuild extends sbt.Build {
 
   lazy val baseSettings = Project.defaultSettings ++ Seq(
     organization := "com.novus",
-    version := "0.9.3-SNAPSHOT",
+    version := "0.9.4-SNAPSHOT",
     scalaVersion := "2.10.2",
     crossScalaVersions := Seq("2.9.0", "2.9.1", "2.9.2"),
     initialCommands := "import com.novus.jdbc._",
