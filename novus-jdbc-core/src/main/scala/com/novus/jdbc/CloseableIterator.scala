@@ -467,9 +467,33 @@ trait CloseableIterator[+A] extends Iterator[A] with Closeable {
    * @note The implementation may allocate temporary storage for elements iterated by one iterator but not yet by the
    *       other.
    * @note Reuse: $consumesOneAndProducesTwoIterators
-   *              $releasesUnderlying
    */
-  override def duplicate = toList.toIterator.duplicate
+  override def duplicate: (Iterator[A], Iterator[A]) ={
+    var canClose = false
+
+    class DuplicateIterator(behind: MQueue[A], forward: MQueue[A]) extends CloseableIterator[A]{
+      def hasNext = behind.nonEmpty || self.hasNext
+
+      def next() = if(hasNext){
+        if(behind.isEmpty){
+          val that = self next ()
+          forward += that
+          that
+        }
+        else behind dequeue ()
+      }
+      else Iterator.empty next ()
+
+      def close(){
+        if(canClose) self close ()
+        else canClose = true
+      }
+    }
+
+    val buff1 = new MQueue[A]
+    val buff2 = new MQueue[A]
+    (new DuplicateIterator(buff1, buff2), new DuplicateIterator(buff2, buff1))
+  }
 
   /**
    * Produces a collection containing cumulative results of applying the operator going left to right.
