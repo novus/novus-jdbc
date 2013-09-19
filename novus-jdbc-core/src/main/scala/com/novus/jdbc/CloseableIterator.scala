@@ -16,6 +16,7 @@
 package com.novus.jdbc
 
 import collection.{Iterator, GenTraversableOnce}
+import collection.mutable.{Queue => MQueue}
 import annotation.tailrec
 import java.io.Closeable
 
@@ -398,9 +399,51 @@ trait CloseableIterator[+A] extends Iterator[A] with Closeable {
    * @return  a pair of iterators: the iterator that satisfies the predicate `pred` and the iterator that does not. The
    *          relative order of the elements in the resulting iterators is the same as in the original iterator.
    * @note Reuse: $consumesOneAndProducesTwoIterators
-   *              $releasesUnderlying
    */
-  override def partition(pred: A => Boolean) = toList.toIterator partition pred
+  override def partition(pred: A => Boolean): (Iterator[A], Iterator[A]) ={
+    var canClose = false
+
+    class PartitionIterator(p: A => Boolean, trueBuffer: MQueue[A], falseBuffer: MQueue[A])
+        extends CloseableIterator[A] {
+
+      private var hd: A = _
+      private var hdDefined = false
+
+      def hasNext = hdDefined || {
+        if(trueBuffer.nonEmpty){
+          hd = trueBuffer dequeue ()
+          hdDefined = true
+        }
+        else{
+          while(self.hasNext && !hdDefined){
+            val that = self next ()
+            hdDefined = p(that)
+            if(hdDefined) hd = that
+            else falseBuffer += that
+          }
+        }
+        if(!hdDefined) close()
+        hdDefined
+      }
+
+      def next() = if(hasNext){
+        hdDefined = false
+        hd
+      }
+      else Iterator.empty next ()
+
+      def close(){
+        if(canClose) self close ()
+        else canClose = true
+      }
+    }
+
+    val oneBuffer = new MQueue[A]
+    val twoBuffer = new MQueue[A]
+    val l = new PartitionIterator(pred, oneBuffer, twoBuffer)
+    val r = new PartitionIterator(!pred(_), twoBuffer, oneBuffer)
+    (l, r)
+  }
 
   /**
    * Splits this Iterator into a prefix/suffix pair according to a predicate.

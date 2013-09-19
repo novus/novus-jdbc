@@ -548,4 +548,48 @@ class CloseableIteratorSpec extends Specification with Mockito{
         (cnt must be greaterThan 0)
     }
   }
+
+  "partition" should{
+    "handle empty iterators" in{
+      val (iter1, iter2) = nonCounter(Iterator.empty) partition (_ => true)
+
+      (iter1 must beEmpty) and
+        (iter2 must beEmpty)
+    }
+    "handle when one iterator creates an empty iterator" in{
+      val (iter1, iter2) = nonCounter() partition (_ => true)
+
+      (iter2 must beEmpty) and
+        (iter1.toList must beEqualTo(List(1, 1, -1, 3)))
+    }
+    "divide the iterator into two" in {
+      val (iter1, iter2) = nonCounter() partition (_ > 0)
+
+      (iter1.toList must beEqualTo(List(1, 1, 3))) and
+        (iter2.toList must beEqualTo(List(-1)))
+    }
+    "call close after all elements traversed" in{
+      var cnt = 0
+      val (iter1, iter2) = counter(() => cnt += 1) partition (_ > 0)
+      iter1 next ()
+      (cnt must beEqualTo(0)) and
+        ({iter2.toList; cnt} must beEqualTo(1))
+    }
+    "work properly with other methods" in{
+      var cnt = 0
+      val (iter1, iter2) = counter(() => cnt += 1) partition (_ > 0)
+      val iter3 = iter1 filter (_ < 2)
+
+      iter3.toList
+      (iter2.toList must beEqualTo(List(-1))) and
+        (cnt must greaterThan(0))
+    }
+    "work properly after other methods" in {
+      var cnt = 0
+      val (iter1, _) = counter(() => cnt += 1) filter (_ < 3) partition (_ > 0)
+
+      iter1.toList
+      cnt must beGreaterThan(0)
+    }
+  }
 }
