@@ -81,6 +81,46 @@ trait CloseableIterator[+A] extends Iterator[A] with Closeable {
     }
   }
 
+  /**
+   * Returns an iterator which groups this iterator into fixed size
+   * blocks.  Example usages:
+   * {{{
+   *   // Returns List(List(1, 2, 3), List(4, 5, 6), List(7)))
+   *   (1 to 7).iterator grouped 3 toList
+   *   // Returns List(List(1, 2, 3), List(4, 5, 6))
+   *   (1 to 7).iterator grouped 3 withPartial false toList
+   *   // Returns List(List(1, 2, 3), List(4, 5, 6), List(7, 20, 25)
+   *   // Illustrating that withPadding's argument is by-name.
+   *   val it2 = Iterator.iterate(20)(_ + 5)
+   *   (1 to 7).iterator grouped 3 withPadding it2.next toList
+   * }}}
+   *
+   * @note Reuse: $consumesAndProducesIterator
+   */
+  override def grouped[B >: A](size: Int): GroupedIterator[B] = new GroupedIterator[B](size, size)
+
+  /**
+   * Returns an iterator which presents a "sliding window" view of
+   * another iterator.  The first argument is the window size, and
+   * the second is how far to advance the window on each iteration;
+   * defaults to `1`.  Example usages:
+   * {{{
+   *   // Returns List(List(1, 2, 3), List(2, 3, 4), List(3, 4, 5))
+   *   (1 to 5).iterator.sliding(3).toList
+   *   // Returns List(List(1, 2, 3, 4), List(4, 5))
+   *   (1 to 5).iterator.sliding(4, 3).toList
+   *   // Returns List(List(1, 2, 3, 4))
+   *   (1 to 5).iterator.sliding(4, 3).withPartial(false).toList
+   *   // Returns List(List(1, 2, 3, 4), List(4, 5, 20, 25))
+   *   // Illustrating that withPadding's argument is by-name.
+   *   val it2 = Iterator.iterate(20)(_ + 5)
+   *   (1 to 5).iterator.sliding(4, 3).withPadding(it2.next).toList
+   * }}}
+   *
+   * @note Reuse: $consumesAndProducesIterator
+   */
+  override def sliding[B >: A](size: Int, step: Int = 1): GroupedIterator[B] = new GroupedIterator[B](size, step)
+
   //Using the super.Foo trick to override the basic definition of Iterator's GroupedIterator
   class GroupedIterator[B >: A](size: Int, step: Int) extends super.GroupedIterator[B](this, size, step)
     with CloseableIterator[Seq[B]] {
