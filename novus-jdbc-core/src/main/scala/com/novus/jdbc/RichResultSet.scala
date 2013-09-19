@@ -554,7 +554,7 @@ class RichResultSet(row: ResultSet) extends ResultSet{
 }
 
 object RichResultSet{
-  val pattern = DateTimeFormat forPattern "yyyy-MM-dd hh:mm:ss.fffffffff"
+  val pattern = DateTimeFormat forPattern "yyyy-MM-dd HH:mm:ss.SSS"
 
   def parseTimeStamp(time: java.sql.Timestamp) = pattern parseDateTime (time toString)
 }
