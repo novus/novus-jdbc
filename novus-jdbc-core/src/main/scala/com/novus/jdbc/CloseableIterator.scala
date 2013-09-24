@@ -454,7 +454,47 @@ trait CloseableIterator[+A] extends Iterator[A] with Closeable {
    *  @note Reuse: $consumesOneAndProducesTwoIterators
    *               $releasesUnderlying
    */
-  override def span(pred: A => Boolean) = toList.toIterator span pred
+  override def span(pred: A => Boolean): (Iterator[A], Iterator[A]) ={
+    val head = new MQueue[A]
+    val buffer = buffered
+    var continue = buffer.hasNext && pred(buffer.head)
+    var canClose = false
+
+    class HeadIterator extends CloseableIterator[A] {
+      def hasNext = head.nonEmpty || (continue && buffer.hasNext && pred(buffer.head))
+
+      def next() = if(hasNext){
+        if (head.isEmpty){
+          val that = buffer next ()
+          continue = buffer.hasNext && pred(buffer.head)
+          that
+        }
+        else head dequeue ()
+      }
+      else Iterator.empty next ()
+
+      def close(){
+        if(canClose) buffer close ()
+        else canClose = true
+      }
+    }
+    class TailIterator extends CloseableIterator[A] {
+      def hasNext = (!continue && buffer.hasNext) || {
+        while(buffer.hasNext && pred(buffer.head)) head += buffer next ()
+        continue = buffer.hasNext && !pred(buffer.head)
+        continue
+      }
+
+      def next() = if(hasNext) buffer next () else Iterator.empty next ()
+
+      def close(){
+        if(canClose) buffer close ()
+        else canClose = true
+      }
+    }
+
+    (new HeadIterator, new TailIterator)
+  }
 
   /**
    * Creates two new iterators that both iterate over the same elements as this iterator (in the same order).  The

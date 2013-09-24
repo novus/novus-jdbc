@@ -631,4 +631,67 @@ class CloseableIteratorSpec extends Specification with Mockito{
       cnt must beGreaterThan(0)
     }
   }
+
+  "span" should {
+    "handle empty iterator" in{
+      val (iter1, iter2) = nonCounter(Iterator.empty).span(_ => true)
+
+      (iter1 must beEmpty) and
+        (iter2 must beEmpty)
+    }
+    "create two iterators" in{
+      val (iter1, iter2) = nonCounter().span(_ => true)
+
+      (iter1.toList must beEqualTo(List(1, 1, -1, 3))) and
+        (iter2.toList must beEmpty)
+    }
+    "call close after all elements traversed" in {
+      var cnt = 0
+      val (iter1, _) = counter(() => cnt += 1).span(_ => true)
+      iter1.toList
+      cnt must beGreaterThan(0)
+    }
+    "call close after all elements traversed" in {
+      var cnt = 0
+      val (_, iter2) = counter(() => cnt += 1).span(_ => false)
+      iter2.toList
+      cnt must beGreaterThan(0)
+    }
+    "call close after all elements traversed" in {
+      var cnt = 0
+      val (iter1, iter2) = counter(() => cnt += 1).span(_ > 0)
+      iter1.toList
+      iter2.toList
+      cnt must beGreaterThan(0)
+    }
+    "not call close after no elements traversed" in {
+      var cnt = 0
+      val (iter1, _) = counter(() => cnt += 1).span(_ => false)
+      iter1.toList
+      cnt must beEqualTo(0)
+    }
+    "divide up the iterators" in {
+      val (iter1, iter2) = nonCounter().span(_ > 0)
+      (iter1.toList must haveLength(2)) and
+        (iter2.toList must haveLength(2))
+    }
+    "work properly with other methods" in{
+      var cnt = 0
+      val (iter1, iter2) = counter(() => cnt += 1).span(_ > 0)
+      val iter3 = iter1 take 1
+      val iter4 = iter2 take 1
+
+      iter3.toList
+      iter4.toList
+      cnt must beGreaterThan(0)
+    }
+    "work properly after other methods" in {
+      var cnt = 0
+      val (iter1, iter2) = counter(() => cnt += 1).take(1).span(_ > 0)
+
+      iter1.toList
+      iter2.toList
+      cnt must beGreaterThan(0)
+    }
+  }
 }
