@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory
  *
  * @note Warning: Does not work properly with parameter objects that can only be traversed once.
  */
-trait QueryExecutor[DBType] {
+trait QueryExecutor[DBType] extends StatementExecutor[DBType]{
   val log = LoggerFactory getLogger this.getClass
 
   /** Obtain a connection from the underlying connection pool */
@@ -378,7 +378,7 @@ trait QueryExecutor[DBType] {
     val con = connection()
     try{
       con setAutoCommit false
-      val out = f(SavePoint(con, con setSavepoint (), query))
+      val out = f(new SavePoint[DBType](con, con setSavepoint ()))
       con commit ()
 
       out

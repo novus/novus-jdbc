@@ -81,9 +81,9 @@ object NovusjdbcBuild extends sbt.Build {
 
   lazy val baseSettings = Project.defaultSettings ++ Seq(
     organization := "com.novus",
-    version := "0.9.5-SNAPSHOT",
+    version := "0.9.5-FINAL",
     scalaVersion := "2.10.2",
-    crossScalaVersions := Seq("2.9.0", "2.9.1", "2.9.2"),
+    crossScalaVersions := Seq("2.9.0", "2.9.1", "2.9.2"), //Technically this won't work unless you comment things out
     initialCommands := "import com.novus.jdbc._",
     scalacOptions := Seq("-deprecation", "-unchecked", "-feature", "-language:postfixOps"),
     resolvers ++= Seq(
