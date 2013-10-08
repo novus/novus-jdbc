@@ -7,3 +7,5 @@ resolvers ++= Seq(
 addSbtPlugin("com.typesafe.sbt" % "sbt-scalariform" % "1.0.0")
 
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.9.0")
+
+addSbtPlugin("com.typesafe.sbt" % "sbt-pgp" % "0.8.1")

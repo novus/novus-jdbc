@@ -90,7 +90,7 @@ trait QueryExecutor[DBType] extends StatementExecutor[DBType]{
     }
     catch {
       case ex: NullPointerException => log error ("{} pool object returned a null connection", this); throw ex
-      case ex: Exception            => log error ("%s, threw exception" format this, ex); throw ex
+      case ex: Exception            => log error ("%s threw exception with %s" format (this, msg), ex); throw ex
     }
     finally {
       if (con != null) con close ()
@@ -392,7 +392,7 @@ trait QueryExecutor[DBType] extends StatementExecutor[DBType]{
         catch{
           case ex: SQLException => log error ("Unable to rollback transaction", ex)
         }
-        log error ("%s, threw exception" format this, ex)
+        log error ("%s threw exception" format this, ex)
         throw ex
     }
     finally{

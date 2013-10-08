@@ -91,11 +91,35 @@ object NovusjdbcBuild extends sbt.Build {
       "snapshots" at "http://oss.sonatype.org/content/repositories/snapshots",
       "releases"  at "http://oss.sonatype.org/content/repositories/releases"
     ),
-    credentials += Credentials(Path.userHome / ".ivy2" / ".novus_nexus"),
-    publishTo <<= (version) { version: String =>
-      val sfx = if(version.trim.endsWith("SNAPSHOT")) "snapshots" else "releases"
-      val nexus = "https://nexus.novus.com:65443/nexus/content/repositories/"
-      Some("Novus " + sfx at nexus + sfx + "/")
+    pomIncludeRepository := { _ => false },
+    pomExtra := (
+      <url>https://github.com/novus/novus-jdbc</url>
+      <licenses>
+        <license>
+          <name>Apache 2.0</name>
+          <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+          <distribution>repo</distribution>
+        </license>
+      </licenses>
+      <scm>
+        <url>git@github.com:novus/novus-jdbc.git</url>
+        <connection>scm:git:git@github.com:novus/novus-jdbc.git</connection>
+      </scm>
+      <developers>
+        <developer>
+          <id>wheaties</id>
+          <name>Owein Reese</name>
+          <url>staticallytyped.wordpress.com</url>
+          <organizationUrl>https://www.novus.com/</organizationUrl>
+        </developer>
+      </developers>
+    ),
+    publishMavenStyle := true,
+    publishArtifact in Test := false,
+    publishTo <<= version { (version: String) =>
+      val nexus = "https://oss.sonatype.org/"
+      if (version.trim.endsWith("SNAPSHOT")) Some("snapshots" at nexus + "content/repositories/snapshots")
+      else Some("releases" at nexus + "service/local/staging/deploy/maven2")
     }) ++ assemblySettings
 }
 
