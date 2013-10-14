@@ -19,6 +19,7 @@ import java.util.regex.{ Matcher, Pattern }
 import annotation.tailrec
 import java.sql.{CallableStatement, Connection, Statement, ResultSet, PreparedStatement, SQLException, Types}
 import java.io.{ Reader, InputStream }
+import xml.{NodeSeq, Document}
 
 /**
  * Abstracts the Database specific logic away from the management of the connection pools.
@@ -55,7 +56,7 @@ trait Queryable[DBType] {
   def select[T](f: RichResultSet => T, query: String, params: Any*)(con: Connection): CloseableIterator[T] = {
     val prepared = con prepareStatement formatQuery(query, params: _*)
     try{
-      statement(prepared, params: _*)
+      statement(con, prepared, params: _*)
 
       new ResultSetIterator(prepared, wrap(prepared executeQuery ()), f)
     }
@@ -117,7 +118,7 @@ trait Queryable[DBType] {
   def one[T](f: RichResultSet => T, query: String, params: Any*)(con: Connection): Option[T] = {
     val prepared = con prepareStatement formatQuery(query, params: _*)
     try{
-      statement(prepared, params: _*)
+      statement(con, prepared, params: _*)
       val rs = wrap(prepared executeQuery ())
 
       if(rs next ()) Some(f(rs)) else None
@@ -138,7 +139,7 @@ trait Queryable[DBType] {
       var results  = Vector[Int]()
       for( group <- params.grouped(batchSize) ) {
         for (currParams <- group) {
-          statement(prepared, currParams : _*)
+          statement(con, prepared, currParams : _*)
           prepared.addBatch()
         }
         results ++= prepared.executeBatch()
@@ -161,7 +162,7 @@ trait Queryable[DBType] {
   def insert(query: String, params: Any*)(con: Connection): CloseableIterator[Int] = {
     val prepared = con prepareStatement (query, Statement.RETURN_GENERATED_KEYS)
     try{
-      statement(prepared, params: _*) executeUpdate ()
+      statement(con, prepared, params: _*) executeUpdate ()
 
       new ResultSetIterator[ResultSet,Int](prepared, prepared getGeneratedKeys (), _ getInt 1) //compiler can't deduce the types...
     }
@@ -184,7 +185,7 @@ trait Queryable[DBType] {
   def insert[T](columns: Array[Int], f: RichResultSet => T, query: String, params: Any*)(con: Connection): CloseableIterator[T] ={
     val prepared = con prepareStatement (query, columns)
     try{
-      statement(prepared, params: _*) executeUpdate ()
+      statement(con, prepared, params: _*) executeUpdate ()
 
       new ResultSetIterator(prepared, wrap(prepared getGeneratedKeys ()), f)
     }
@@ -206,7 +207,7 @@ trait Queryable[DBType] {
   def insert[T](columns: Array[String], f: RichResultSet => T, query: String, params: Any*)(con: Connection): CloseableIterator[T] ={
     val prepared = con prepareStatement (query, columns)
     try{
-      statement(prepared, params: _*) executeUpdate ()
+      statement(con, prepared, params: _*) executeUpdate ()
 
       new ResultSetIterator(prepared, wrap(prepared getGeneratedKeys ()), f)
     }
@@ -288,7 +289,7 @@ trait Queryable[DBType] {
   def update(query: String, params: Any*)(con: Connection): Int = {
     val prepared = con prepareStatement formatQuery(query, params: _*)
     try{
-      statement(prepared, params: _*) executeUpdate ()
+      statement(con, prepared, params: _*) executeUpdate ()
     }
     finally {
       prepared close ()
@@ -376,7 +377,7 @@ trait Queryable[DBType] {
   def execute(query: String, params: Any*)(con: Connection) {
     val prepared = con prepareStatement formatQuery(query, params: _*)
     try{
-      statement(prepared, params: _*) execute ()
+      statement(con, prepared, params: _*) execute ()
     }
     finally {
       prepared close ()
@@ -415,7 +416,7 @@ trait Queryable[DBType] {
   def proc[T](f: RichResultSet => T, query: String, params: Any*)(con: Connection): CloseableIterator[T] ={
     val callable = con prepareCall formatQuery(query, params: _*)
     try{
-      statement(callable, params: _*)
+      statement(con, callable, params: _*)
 
       new ResultSetIterator(callable, wrap(callable executeQuery ()), f)
     }
@@ -491,7 +492,7 @@ trait Queryable[DBType] {
       out foreach { name =>
         callable registerOutParameter (name, Types.JAVA_OBJECT)
       }
-      statement(callable, params: _*) execute ()
+      statement(con, callable, params: _*) execute ()
 
       f(wrap(callable))
     }
@@ -517,7 +518,7 @@ trait Queryable[DBType] {
       out foreach { name =>
         callable registerOutParameter (name, Types.JAVA_OBJECT)
       }
-      statement(callable, params: _*) execute ()
+      statement(con, callable, params: _*) execute ()
 
       f(wrap(callable))
     }
@@ -572,12 +573,17 @@ trait Queryable[DBType] {
    * @note This works via side-effect due to the underlying nature of the Java JDBC API. The return of the statement is
    *       merely for chaining method calls.
    */
-  protected[jdbc] def statement(stmt: PreparedStatement, params: Any*): PreparedStatement = {
+  protected[jdbc] def statement(con: Connection, stmt: PreparedStatement, params: Any*): PreparedStatement = {
     var i = 1
     params foreach { next =>
       next match {
         case null => stmt setNull (i, Types.NULL); i += 1
         case None => stmt setNull (i, Types.NULL); i += 1
+        case xml: NodeSeq =>
+          val container = con createSQLXML ()
+          container setString (xml toString ())
+          stmt setSQLXML (i, container)
+          i += 1
         case x: Char => stmt setObject (i, x, Types.CHAR); i += 1
         case Some(value) => stmt setObject (i, value); i += 1
         case x: InputStream => stmt setBinaryStream (i, x); i += 1

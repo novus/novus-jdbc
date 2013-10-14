@@ -17,7 +17,8 @@ package com.novus.jdbc
 
 import org.specs2.mutable.Specification
 import org.specs2.mock.Mockito
-import java.sql.{Connection, Statement, ResultSet, PreparedStatement, SQLException, Types}
+import java.sql._
+import scala.Array
 
 class QueryableSpec extends Specification with Mockito{
 
@@ -26,11 +27,14 @@ class QueryableSpec extends Specification with Mockito{
   val able = new Queryable[TestDB]{}
 
   "statement" should{
+    val xml = mock[SQLXML]
+    val con = mock[Connection]
+    con createSQLXML () returns xml
 
     "handle multiple Iterable types" in{
       val stmt = mock[PreparedStatement]
 
-      able.statement(stmt, List(1,2), List(3, 4))
+      able.statement(con, stmt, List(1,2), List(3, 4))
 
       (1 to 4) map (x => there was one(stmt).setObject(x,x)) reduce(_ and _)
     }
@@ -38,7 +42,7 @@ class QueryableSpec extends Specification with Mockito{
     "handle a single Iterable type" in{
       val stmt = mock[PreparedStatement]
 
-      able.statement(stmt, 1, List(2,3))
+      able.statement(con, stmt, 1, List(2,3))
 
       (1 to 3) map (x => there was one(stmt).setObject(x,x)) reduce(_ and _)
     }
@@ -46,7 +50,7 @@ class QueryableSpec extends Specification with Mockito{
     "handle a single Iterable type, in any order" in{
       val stmt = mock[PreparedStatement]
 
-      able.statement(stmt, List(1, 2), 3)
+      able.statement(con, stmt, List(1, 2), 3)
 
       (1 to 3) map (x => there was one(stmt).setObject(x,x)) reduce(_ and _)
     }
@@ -54,7 +58,7 @@ class QueryableSpec extends Specification with Mockito{
     "handle a null" in{
       val stmt = mock[PreparedStatement]
 
-      able.statement(stmt, null)
+      able.statement(con, stmt, null)
 
       there was one(stmt).setNull(1, Types.NULL)
     }
@@ -62,9 +66,16 @@ class QueryableSpec extends Specification with Mockito{
     "handle a None" in{
       val stmt = mock[PreparedStatement]
 
-      able.statement(stmt, None)
+      able.statement(con, stmt, None)
 
       there was one(stmt).setNull(1, Types.NULL)
+    }
+    "handle XML" in{
+      val stmt = mock[PreparedStatement]
+
+      able.statement(con, stmt, <div>Something</div>)
+      (there was one(xml).setString("<div>Something</div>")) and
+        (there was one(stmt).setSQLXML(anyInt,any[SQLXML]))
     }
   }
 
