@@ -718,12 +718,6 @@ trait CloseableIterator[+A] extends Iterator[A] with Closeable {
     }
   }
 
-  override def corresponds[B](that: GenTraversableOnce[B])(pred: (A, B) => Boolean) ={
-    val output = super.corresponds(that)(pred)
-    if(hasNext) close()
-    output
-  }
-
   /**
    * Releases the resource from control by the iterator.
    *
