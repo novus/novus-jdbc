@@ -87,8 +87,8 @@ object NovusjdbcBuild extends sbt.Build {
     scalacOptions := Seq("-deprecation", "-unchecked", "-feature", "-language:postfixOps"),
     resolvers ++= Seq(
       "Scala-Tools Maven2 Snapshots Repository" at "http://scala-tools.org/repo-snapshots",
-      "snapshots" at "http://oss.sonatype.org/content/repositories/snapshots",
-      "releases"  at "http://oss.sonatype.org/content/repositories/releases"
+      "Sonatype OSS snapshots" at "http://oss.sonatype.org/content/repositories/snapshots",
+      "Sonatype OSS releases"  at "http://oss.sonatype.org/content/repositories/releases"
     ),
     pomIncludeRepository := { _ => false },
     pomExtra := (
@@ -117,8 +117,8 @@ object NovusjdbcBuild extends sbt.Build {
     publishArtifact in Test := false,
     publishTo <<= version { (version: String) =>
       val nexus = "https://oss.sonatype.org/"
-      if (version.trim.endsWith("SNAPSHOT")) Some("snapshots" at nexus + "content/repositories/snapshots")
-      else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+      if (version.trim.endsWith("SNAPSHOT")) Some("Sonatype OSS deployment snapshots" at nexus + "content/repositories/snapshots")
+      else Some("Sonatype OSS deployment releases" at nexus + "service/local/staging/deploy/maven2")
     }) ++ assemblySettings
 }
 
