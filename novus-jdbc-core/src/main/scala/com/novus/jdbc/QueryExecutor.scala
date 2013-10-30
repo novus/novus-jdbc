@@ -406,11 +406,11 @@ trait QueryExecutor[DBType] extends StatementExecutor[DBType]{
   /** Batch insertion method that takes care of inserting a massive Iterator[A].
     * @param insert `INSERT` SQL statement
     * @param batchSize number of rows to be inserted in each batch
-    * @param set0 curried function that takes a `PreparedStatement` and returns a function of type `A => Unit` that, when called, will update by side effect the `PreparedStatement` with the given `A`'s contents.
+    * @param set function that takes a `A` and (by side effect) updates the `PreparedStatement` with the given `A`'s contents
     * @param log an optional logging function that can log three numeric metrics: index of batch which was just executed, number of elements in that batch, and number of rows inserted into the underlying database
     * @param elems an iterator of some `A`'s
     */
-  final def batchInsert[A](insert: String, batchSize: Int, set0: PreparedStatement => A => Unit, log: (Int, Int, Int) => Unit = (_, _, _) => ())(elems: Iterator[A]) {
+  final def batchInsert[A](insert: String, batchSize: Int, set: (A, PreparedStatement) => Unit, log: (Int, Int, Int) => Unit = (_, _, _) => ())(elems: Iterator[A]) {
     var _conn = Option.empty[Connection]
     var _stmt = Option.empty[PreparedStatement]
     try {
@@ -419,7 +419,6 @@ trait QueryExecutor[DBType] extends StatementExecutor[DBType]{
 
       val Some(conn) = _conn
       val Some(stmt) = _stmt
-      val set = set0(stmt)
 
       var batchCount = 0
 
@@ -427,7 +426,7 @@ trait QueryExecutor[DBType] extends StatementExecutor[DBType]{
         var elemCount = 0
 
         for (elem <- batch) {
-          set(elem)
+          set(elem, stmt)
           stmt.addBatch()
           elemCount += 1
         }
