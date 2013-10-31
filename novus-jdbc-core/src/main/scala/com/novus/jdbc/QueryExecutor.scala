@@ -15,7 +15,7 @@
  */
 package com.novus.jdbc
 
-import java.sql.{SQLException, Connection}
+import java.sql.{SQLException, Connection, PreparedStatement}
 import org.slf4j.LoggerFactory
 
 /**
@@ -400,6 +400,47 @@ trait QueryExecutor[DBType] extends StatementExecutor[DBType]{
         con setAutoCommit true
         con close ()
       }
+    }
+  }
+
+  /** Batch insertion method that takes care of inserting a massive Iterator[A].
+    * @param insert `INSERT` SQL statement
+    * @param batchSize number of rows to be inserted in each batch
+    * @param set function that takes a `A` and (by side effect) updates the `PreparedStatement` with the given `A`'s contents
+    * @param log an optional logging function that can log three numeric metrics: index of batch which was just executed, number of elements in that batch, and number of rows inserted into the underlying database
+    * @param elems an iterator of some `A`'s
+    */
+  final def batchInsert[A](insert: String, batchSize: Int, set: (A, PreparedStatement) => Unit, log: (Int, Int, Int) => Unit = (_, _, _) => ())(elems: Iterator[A]) {
+    var _conn = Option.empty[Connection]
+    var _stmt = Option.empty[PreparedStatement]
+    try {
+      _conn = Some(connection())
+      _stmt = _conn.map(_.prepareStatement(insert))
+
+      val Some(conn) = _conn
+      val Some(stmt) = _stmt
+
+      var batchCount = 0
+
+      for (batch <- elems.sliding(batchSize, batchSize)) {
+        var elemCount = 0
+
+        for (elem <- batch) {
+          set(elem, stmt)
+          stmt.addBatch()
+          elemCount += 1
+        }
+
+        val affectedCount = stmt.executeBatch()
+        batchCount += 1
+        log(batchCount, elemCount, affectedCount.sum)
+      }
+
+      conn.commit()
+    }
+    finally {
+      _stmt.foreach(_.close())
+      _conn.foreach(_.close())
     }
   }
 
