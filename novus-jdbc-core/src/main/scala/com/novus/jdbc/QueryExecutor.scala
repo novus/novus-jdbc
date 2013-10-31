@@ -415,6 +415,7 @@ trait QueryExecutor[DBType] extends StatementExecutor[DBType]{
     var _stmt = Option.empty[PreparedStatement]
     try {
       _conn = Some(connection())
+      _conn.foreach(_.setAutoCommit(false))
       _stmt = _conn.map(_.prepareStatement(insert))
 
       val Some(conn) = _conn
@@ -440,6 +441,7 @@ trait QueryExecutor[DBType] extends StatementExecutor[DBType]{
     }
     finally {
       _stmt.foreach(_.close())
+      _conn.foreach(_.setAutoCommit(true))
       _conn.foreach(_.close())
     }
   }
