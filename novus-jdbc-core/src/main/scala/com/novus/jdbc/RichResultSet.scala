@@ -49,6 +49,9 @@ class RichResultSet(row: ResultSet) extends ResultSet{
   def getFloat_?(column: String): Option[Float] = wasNull(row getFloat (column))
   def getFloat_?(column: Int): Option[Float] = wasNull(row getFloat (column))
 
+  def getBytes_?(column: String): Option[Array[Byte]] = wasNull(row getBytes column)
+  def getBytes_?(column: Int): Option[Array[Byte]] = wasNull(row getBytes column)
+
   def getDateTime(column: String): DateTime = parseDate(row getTimestamp column)
   def getDateTime(column: Int): DateTime = parseDate(row getTimestamp column)
 
@@ -82,7 +85,10 @@ class RichResultSet(row: ResultSet) extends ResultSet{
   def getInt(columnIndex: Int) = row getInt (columnIndex)
   def getLong(columnIndex: Int) = row getLong (columnIndex)
   def getBigDecimal(columnIndex: Int, scale: Int) = row getBigDecimal (columnIndex)
-  def getBytes(columnIndex: Int) = row getBytes (columnIndex)
+  def getBytes(columnIndex: Int) ={
+    val out = row getBytes (columnIndex)
+    if(out == null) Array.empty[Byte] else out
+  }
   def getDate(columnIndex: Int) = row getDate (columnIndex)
   def getTime(columnIndex: Int) = getTime (columnIndex)
   def getTimestamp(columnIndex: Int): Timestamp = row getTimestamp (columnIndex)
@@ -96,7 +102,10 @@ class RichResultSet(row: ResultSet) extends ResultSet{
   def getInt(columnLabel: String): Int = row getInt (columnLabel)
   def getLong(columnLabel: String): Long = row getLong (columnLabel)
   def getBigDecimal(columnLabel: String, scale: Int): BigDecimal = row getBigDecimal (columnLabel)
-  def getBytes(columnLabel: String) = row getBytes (columnLabel)
+  def getBytes(columnLabel: String) ={
+    val out = row getBytes (columnLabel)
+    if(out == null) Array.empty[Byte] else out
+  }
   def getDate(columnLabel: String) = row getDate (columnLabel)
   def getTime(columnLabel: String) = row getTime (columnLabel)
   def getTimestamp(columnLabel: String): Timestamp = row getTimestamp (columnLabel)

@@ -130,7 +130,7 @@ class StatementResult(callable: CallableStatement){ //doesn't extend CallableSta
 }
 
 object StatementResult{
-  val pattern = DateTimeFormat forPattern "yyyy-MM-dd hh:mm:ss.fffffffff"
+  val pattern = DateTimeFormat forPattern "yyyy-MM-dd HH:mm:ss.SSS"
 
   def parseTimeStamp(time: java.sql.Timestamp) = pattern parseDateTime (time toString)
 }

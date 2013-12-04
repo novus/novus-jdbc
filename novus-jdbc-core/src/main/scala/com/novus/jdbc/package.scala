@@ -26,6 +26,7 @@ object `package`{
   type H2 = com.novus.jdbc.h2.H2
   type Postgres = com.novus.jdbc.postgres.Postgres
   type Sqlite = com.novus.jdbc.sqlite.Sqlite
+  type Sybase = com.novus.jdbc.sybase.Sybase
 
   /**
    * Helper method to ensure that `close` is called after using a `CloseableIterator` within a function.

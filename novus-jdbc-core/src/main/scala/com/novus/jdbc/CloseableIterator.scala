@@ -440,9 +440,7 @@ trait CloseableIterator[+A] extends Iterator[A] with Closeable {
 
     val oneBuffer = new MQueue[A]
     val twoBuffer = new MQueue[A]
-    val l = new PartitionIterator(pred, oneBuffer, twoBuffer)
-    val r = new PartitionIterator(!pred(_), twoBuffer, oneBuffer)
-    (l, r)
+    (new PartitionIterator(pred, oneBuffer, twoBuffer), new PartitionIterator(!pred(_), twoBuffer, oneBuffer))
   }
 
   /**
