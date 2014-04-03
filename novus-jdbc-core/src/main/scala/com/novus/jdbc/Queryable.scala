@@ -575,31 +575,28 @@ trait Queryable[DBType] {
    */
   protected[jdbc] def statement(con: Connection, stmt: PreparedStatement, params: Any*): PreparedStatement = {
     var i = 1
-    params foreach { next =>
+    def set[T](next: T) {
       next match {
-        case null => stmt setNull (i, Types.NULL); i += 1
-        case None => stmt setNull (i, Types.NULL); i += 1
+        case null => stmt setNull (i, Types.NULL)
+        case None => stmt setNull (i, Types.NULL)
         case xml: NodeSeq =>
           val container = con createSQLXML ()
           container setString (xml toString ())
           stmt setSQLXML (i, container)
-          i += 1
-        case x: Char => stmt setObject (i, x, Types.CHAR); i += 1
-        case Some(value) => stmt setObject (i, value); i += 1
-        case x: InputStream => stmt setBinaryStream (i, x); i += 1
-        case x: Reader => stmt setCharacterStream (i, x); i += 1
-        case Right(value) => stmt setObject (i, value); i += 1
-        case Left(value) => stmt setObject (i, value); i += 1
-        case x: java.math.BigDecimal => stmt setBigDecimal(i, x); i += 1
-        case x: java.math.BigInteger => stmt setObject(i, x, Types.BIGINT); i += 1
-        case iter: Iterable[_] => iter foreach { item =>
-          stmt setObject (i, item)
-          i += 1
-        }
-        case x => stmt setObject (i, x); i += 1
+        case x: Char => stmt setObject (i, x, Types.CHAR)
+        case Some(value) => stmt setObject (i, value)
+        case x: InputStream => stmt setBinaryStream (i, x)
+        case x: Reader => stmt setCharacterStream (i, x)
+        case Right(value) => stmt setObject (i, value)
+        case Left(value) => stmt setObject (i, value)
+        case x: java.math.BigDecimal => stmt setBigDecimal(i, x)
+        case x: java.math.BigInteger => stmt setObject(i, x, Types.BIGINT)
+        case iter: Iterable[_] => iter.foreach(set)
+        case x => stmt setObject (i, x)
       }
+      i += 1
     }
-
+    params.foreach(set)
     stmt
   }
 }
