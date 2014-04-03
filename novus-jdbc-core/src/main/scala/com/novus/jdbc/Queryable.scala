@@ -17,9 +17,10 @@ package com.novus.jdbc
 
 import java.util.regex.{ Matcher, Pattern }
 import annotation.tailrec
-import java.sql.{CallableStatement, Connection, Statement, ResultSet, PreparedStatement, SQLException, Types}
+import java.sql.{CallableStatement, Connection, Statement, ResultSet, PreparedStatement, SQLException, Types, Date, Timestamp}
 import java.io.{ Reader, InputStream }
 import xml.{NodeSeq, Document}
+import org.joda.time.{DateTime, LocalDate, LocalTime}
 
 /**
  * Abstracts the Database specific logic away from the management of the connection pools.
@@ -592,6 +593,8 @@ trait Queryable[DBType] {
         case x: java.math.BigDecimal => stmt setBigDecimal(i, x)
         case x: java.math.BigInteger => stmt setObject(i, x, Types.BIGINT)
         case iter: Iterable[_] => iter.foreach(set)
+        case x: DateTime => stmt.setTimestamp(i, new Timestamp(x.getMillis))
+        case x: LocalDate => stmt.setDate(i, new Date(x.toDateTime(LocalTime.MIDNIGHT).getMillis))
         case x => stmt setObject (i, x)
       }
       i += 1
