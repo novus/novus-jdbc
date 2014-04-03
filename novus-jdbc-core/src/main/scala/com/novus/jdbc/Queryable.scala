@@ -577,6 +577,7 @@ trait Queryable[DBType] {
   protected[jdbc] def statement(con: Connection, stmt: PreparedStatement, params: Any*): PreparedStatement = {
     var i = 1
     def set[T](next: T) {
+      var shift = 1
       next match {
         case null => stmt setNull (i, Types.NULL)
         case None => stmt setNull (i, Types.NULL)
@@ -592,12 +593,14 @@ trait Queryable[DBType] {
         case Left(value) => stmt setObject (i, value)
         case x: java.math.BigDecimal => stmt setBigDecimal(i, x)
         case x: java.math.BigInteger => stmt setObject(i, x, Types.BIGINT)
-        case iter: Iterable[_] => iter.foreach(set)
+        case iter: Iterable[_] =>
+          shift = 0
+          iter.foreach(set)
         case x: DateTime => stmt.setTimestamp(i, new Timestamp(x.getMillis))
         case x: LocalDate => stmt.setDate(i, new Date(x.toDateTime(LocalTime.MIDNIGHT).getMillis))
         case x => stmt setObject (i, x)
       }
-      i += 1
+      i += shift
     }
     params.foreach(set)
     stmt
