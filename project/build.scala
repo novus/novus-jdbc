@@ -37,7 +37,8 @@ object NovusjdbcBuild extends sbt.Build {
         "org.slf4j" % "slf4j-api" % "1.7.2",
         "joda-time" % "joda-time" % "2.1",
         "org.joda" % "joda-convert" % "1.2" % "compile",
-        "org.hsqldb" % "hsqldb" % "2.2.9" % "test"
+        "org.hsqldb" % "hsqldb" % "2.2.9" % "test",
+        "org.scala-lang.modules" %% "scala-xml" % "1.0.1"
     ) ++ Shared.specsDep(v))))
 
   lazy val novusJdbcBonecp = Project(
@@ -82,7 +83,7 @@ object NovusjdbcBuild extends sbt.Build {
   lazy val baseSettings = Project.defaultSettings ++ Seq(
     organization := "com.novus",
     version := "0.9.9-SNAPSHOT",
-    scalaVersion := "2.10.3",
+    scalaVersion := "2.11.0",
     initialCommands := "import com.novus.jdbc._",
     scalacOptions := Seq("-deprecation", "-unchecked", "-feature", "-language:postfixOps"),
     resolvers ++= Seq(
@@ -127,12 +128,8 @@ object Shared {
   val mockito = "org.mockito" % "mockito-all" % "1.9.0"
 
   /** Resolve specs version for the current scala version (thanks @n8han). */
-  def specsDep(sv: String, cfg: String = "test") =
-    (sv.split("[.-]").toList match {
-      case "2" :: "9" :: "0" :: _ => "org.specs2" % "specs2_2.9.1" % "1.7.1" :: mockito :: Nil
-      case "2" :: "9" :: _ :: _ => "org.specs2" % "specs2_2.9.1" % "1.8.2" :: mockito :: Nil
-      case "2" :: "10" :: _ => "org.specs2" % "specs2_2.10" % "1.14" :: mockito :: Nil
-      case _ => sys.error("Specs not supported for scala version %s" format sv)
-    }) map (_ % cfg)
-  
+  def specsDep(sv: String, cfg: String = "test") = {
+    val specs = "org.specs2" %% "specs2" % "2.3.12"
+    (specs :: mockito :: Nil).map(_ % cfg)
+  }
 }
