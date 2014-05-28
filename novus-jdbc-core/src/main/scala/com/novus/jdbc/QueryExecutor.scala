@@ -446,6 +446,16 @@ trait QueryExecutor[DBType] extends StatementExecutor[DBType]{
     }
   }
 
+  final def withConnection[A](op: Connection => A): A = {
+    val conn = connection()
+    try {
+      op(conn)
+    }
+    finally {
+      if (conn != null) conn.close()
+    }
+  }
+
   /** Shuts down the underlying connection pool. Should be called before this object is garbage collected. */
   def shutdown()
 }
