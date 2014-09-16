@@ -1,5 +1,7 @@
 package com.novus.jdbc
 
+import java.sql.{PreparedStatement, Connection}
+
 /** A common interface from which to work independent of context of statement calls, i.e. within transactions or not. By
  *  popular demand.
  *
@@ -175,6 +177,21 @@ trait StatementExecutor[DBType]{
   def merge(q: String)(implicit query: Queryable[DBType]): CloseableIterator[Int]
 
   /**
+   * Executes arbitrary SQL statements.
+   *
+   * @param q The query statement
+   */
+  def exec(q: String)(implicit query: Queryable[DBType])
+
+  /**
+   * Executes arbitrary SQL statements.
+   *
+   * @param q The query statement.
+   * @param params The query parameters
+   */
+  def exec(q: String, params: Any*)(implicit query: Queryable[DBType])
+
+  /**
    * Execute a stored procedure and yield a [[com.novus.jdbc.CloseableIterator]] which, as consumed, will progress
    * through the underlying [[com.novus.jdbc.RichResultSet]] and lazily evaluate the argument function.
    *
@@ -236,4 +253,6 @@ trait StatementExecutor[DBType]{
    * @tparam T The return type of the query
    */
   def proc[T](out: Array[String], q: String, params: Any*)(f: StatementResult => T)(implicit query: Queryable[DBType]): T
+
+  def withConnection[A](op: Connection => A): A
 }

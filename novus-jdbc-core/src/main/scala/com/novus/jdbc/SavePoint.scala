@@ -17,6 +17,8 @@ package com.novus.jdbc
 
 import java.sql.{Savepoint, Connection}
 
+import org.slf4j.LoggerFactory
+
 /**
  * Represents a means of executing a number of queries which are not committed to the database and can at any point be
  * reverted using the #rollback member function.
@@ -30,8 +32,70 @@ import java.sql.{Savepoint, Connection}
 class SavePoint[DBType](con: Connection, savePoint: Savepoint, savePoints: List[SavePoint[DBType]] = Nil)
     extends StatementExecutor[DBType]{
   self =>
+  val log = LoggerFactory getLogger this.getClass
 
   protected def store[T](f: Connection => T): T = f(con)
+
+  /**
+   * Responsible for obtaining and returning a DB connection from the connection pool to execute the given query
+   * function.
+   *
+   * @param q The query statement
+   * @param params The query parameters
+   * @param f Any one of the select, update, delete or merge commands
+   * @tparam T The return type of the query
+   */
+  @inline final protected def execute[T](q: String, params: Any*)(f: Connection => T): T ={
+    val msg = """
+      QUERY:  %s
+      PARAMS: %s
+    """ format (q, params mkString (", "))
+
+    executeQuery(msg, f)
+  }
+
+  /**
+   * Responsible for obtaining and returning a DB connection from the connection pool to execute the given query
+   * function.
+   *
+   * @param q The query statement
+   * @param f Any one of the select, update, delete or merge commands
+   * @tparam T The return type of the query
+   */
+  @inline final protected def execute[T](q: String)(f: Connection => T): T ={
+    val msg = """
+      QUERY:  %s
+    """ format q
+
+    executeQuery(msg, f)
+  }
+
+  /**
+   * Responsible for obtaining and returning a DB connection from the connection pool to execute the given query
+   * function.
+   *
+   * @param msg The timing message
+   * @param f Any one of the select, update, delete or merge commands
+   * @tparam T The return type of the query
+   */
+  final private def executeQuery[T](msg: String, f: Connection => T): T = {
+    val now = System.currentTimeMillis
+    try {
+      val output = f(con)
+      val later = System.currentTimeMillis
+
+      log info ("Timed: {} timed for {} ms", msg, later - now)
+
+      output
+    }
+    catch {
+      case ex: NullPointerException => log error ("{} pool object returned a null connection", this); throw ex
+      case ex: Exception            => log error ("%s threw exception with %s" format (this, msg), ex); throw ex
+    }
+    finally {
+      if (con != null) con close ()
+    }
+  }
 
   /** Returns an iterator containing update counts. */
   final def executeBatch[I <: Seq[Any]](batchSize: Int = 1000)(q: String, params: Iterator[I])(implicit query: Queryable[DBType]): Iterator[Int] =
@@ -214,6 +278,25 @@ class SavePoint[DBType](con: Connection, savePoint: Savepoint, savePoints: List[
   final def merge(q: String)(implicit query: Queryable[DBType]): CloseableIterator[Int] = store { query merge q }
 
   /**
+   * Executes arbitrary SQL statements.
+   *
+   * @param q The query statement
+   */
+  def exec(q: String)(implicit query: Queryable[DBType]): Unit ={
+    execute(q){ query execute q }
+  }
+
+  /**
+   * Executes arbitrary SQL statements.
+   *
+   * @param q The query statement.
+   * @param params The query parameters
+   */
+  def exec(q: String, params: Any*)(implicit query: Queryable[DBType]): Unit ={
+    execute(q){ query execute (q, params) }
+  }
+
+  /**
    * Execute a stored procedure and yield a [[com.novus.jdbc.CloseableIterator]] which, as consumed, will progress
    * through the underlying [[com.novus.jdbc.RichResultSet]] and lazily evaluate the argument function.
    *
@@ -317,4 +400,15 @@ class SavePoint[DBType](con: Connection, savePoint: Savepoint, savePoints: List[
   }
 
   override def toString() = "SavePoint"
+
+
+  final def withConnection[A](op: Connection => A): A = {
+    val conn = con
+    try {
+      op(conn)
+    }
+    finally {
+      if (conn != null) conn.close()
+    }
+  }
 }
