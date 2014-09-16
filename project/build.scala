@@ -81,7 +81,7 @@ object NovusjdbcBuild extends sbt.Build {
 
   lazy val baseSettings = Project.defaultSettings ++ Seq(
     organization := "com.novus",
-    version := "0.9.8.2-NOVUS-local",
+    version := "0.9.8.2-NOVUS-SNAPSHOT",
     scalaVersion := "2.10.3",
     initialCommands := "import com.novus.jdbc._",
     scalacOptions := Seq("-deprecation", "-unchecked", "-feature", "-language:postfixOps"),
@@ -115,10 +115,15 @@ object NovusjdbcBuild extends sbt.Build {
     ),
     publishMavenStyle := true,
     publishArtifact in Test := false,
-    publishTo <<= version { (version: String) =>
-      val nexus = "https://oss.sonatype.org/"
-      if (version.trim.endsWith("SNAPSHOT")) Some("Sonatype OSS deployment snapshots" at nexus + "content/repositories/snapshots")
-      else Some("Sonatype OSS deployment releases" at nexus + "service/local/staging/deploy/maven2")
+    credentials += Credentials(Path.userHome / ".ivy2" / ".novus_nexus"),
+    publishTo <<= (version) { version: String =>
+      val sfx =
+        if(version.trim.endsWith("SNAPSHOT"))
+          "snapshots"
+        else
+          "releases"
+      val nexus = "https://nexus.novus.com:65443/nexus/content/repositories/"
+      Some("Novus " + sfx at nexus + sfx + "/")
     }) ++ assemblySettings
 }
 
