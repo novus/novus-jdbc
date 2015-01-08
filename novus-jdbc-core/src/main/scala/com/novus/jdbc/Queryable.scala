@@ -22,6 +22,12 @@ import java.io.{ Reader, InputStream }
 import xml.{NodeSeq, Document}
 import org.joda.time.{DateTime, LocalDate, LocalTime}
 
+class Ugh[A](it: Iterator[A]) extends CloseableIterator[A] {
+  def hasNext = it.hasNext
+  def next = it.next
+  def close() = {}
+}
+
 /**
  * Abstracts the Database specific logic away from the management of the connection pools.
  *
@@ -59,10 +65,13 @@ trait Queryable[DBType] {
     try{
       statement(con, prepared, params: _*)
 
-      new ResultSetIterator(prepared, wrap(prepared executeQuery ()), f)
+      val res = new ResultSetIterator(prepared, wrap(prepared executeQuery ()), f).toList.toIterator
+      new Ugh(res)
     }
     catch{
-      case ex: Throwable => prepared close (); throw ex
+      case ex: Throwable => throw ex
+    } finally {
+      prepared close (); 
     }
   }
 
@@ -78,10 +87,13 @@ trait Queryable[DBType] {
   def select[T](f: RichResultSet => T, query: String)(con: Connection): CloseableIterator[T] = {
     val stmt = con createStatement ()
     try{
-      new ResultSetIterator(stmt, wrap(stmt executeQuery query), f)
+      val res = new ResultSetIterator(stmt, wrap(stmt executeQuery query), f).toList.toIterator
+      new Ugh(res)
     }
     catch{
-      case ex: Throwable => stmt close (); throw ex
+      case ex: Throwable => throw ex
+    } finally {
+      stmt close ();
     }
   }
 
