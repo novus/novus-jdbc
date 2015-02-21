@@ -28,6 +28,10 @@ class Ugh[A](it: Iterator[A]) extends CloseableIterator[A] {
   def close() = {}
 }
 
+object Ugh {
+  def apply[A](it: CloseableIterator[A]): Ugh[A] = new Ugh(it.toList.toIterator)
+}
+
 /**
  * Abstracts the Database specific logic away from the management of the connection pools.
  *
@@ -65,13 +69,13 @@ trait Queryable[DBType] {
     try{
       statement(con, prepared, params: _*)
 
-      val res = new ResultSetIterator(prepared, wrap(prepared executeQuery ()), f).toList.toIterator
-      new Ugh(res)
+      val res = new ResultSetIterator(prepared, wrap(prepared executeQuery ()), f)
+      Ugh(res)
     }
     catch{
       case ex: Throwable => throw ex
     } finally {
-      prepared close (); 
+      prepared close ()
     }
   }
 
@@ -87,13 +91,13 @@ trait Queryable[DBType] {
   def select[T](f: RichResultSet => T, query: String)(con: Connection): CloseableIterator[T] = {
     val stmt = con createStatement ()
     try{
-      val res = new ResultSetIterator(stmt, wrap(stmt executeQuery query), f).toList.toIterator
-      new Ugh(res)
+      val res = new ResultSetIterator(stmt, wrap(stmt executeQuery query), f)
+      Ugh(res)
     }
     catch{
       case ex: Throwable => throw ex
     } finally {
-      stmt close ();
+      stmt close ()
     }
   }
 
@@ -177,10 +181,13 @@ trait Queryable[DBType] {
     try{
       statement(con, prepared, params: _*) executeUpdate ()
 
-      new ResultSetIterator[ResultSet,Int](prepared, prepared getGeneratedKeys (), _ getInt 1) //compiler can't deduce the types...
+      val res = new ResultSetIterator[ResultSet,Int](prepared, prepared getGeneratedKeys (), _ getInt 1) //compiler can't deduce the types...
+      Ugh(res)
     }
     catch{
-      case ex: Throwable => prepared close (); throw ex
+      case ex: Throwable => throw ex
+    } finally {
+      prepared close ()
     }
   }
 
@@ -200,10 +207,13 @@ trait Queryable[DBType] {
     try{
       statement(con, prepared, params: _*) executeUpdate ()
 
-      new ResultSetIterator(prepared, wrap(prepared getGeneratedKeys ()), f)
+      val res = new ResultSetIterator(prepared, wrap(prepared getGeneratedKeys ()), f)
+      Ugh(res)
     }
     catch{
-      case ex: Throwable => prepared close (); throw ex
+      case ex: Throwable => throw ex
+    } finally {
+      prepared close ()
     }
   }
 
@@ -222,10 +232,13 @@ trait Queryable[DBType] {
     try{
       statement(con, prepared, params: _*) executeUpdate ()
 
-      new ResultSetIterator(prepared, wrap(prepared getGeneratedKeys ()), f)
+      val res = new ResultSetIterator(prepared, wrap(prepared getGeneratedKeys ()), f)
+      Ugh(res)
     }
     catch{
-      case ex: Throwable => prepared close (); throw ex
+      case ex: Throwable => throw ex
+    } finally {
+      prepared close ()
     }
   }
 
@@ -241,10 +254,13 @@ trait Queryable[DBType] {
     try{
       stmt executeUpdate (query, Statement.RETURN_GENERATED_KEYS)
 
-      new ResultSetIterator[ResultSet,Int](stmt, stmt getGeneratedKeys (), _ getInt 1) //compiler can't deduce the types...
+      val res = new ResultSetIterator[ResultSet,Int](stmt, stmt getGeneratedKeys (), _ getInt 1) //compiler can't deduce the types...
+      Ugh(res)
     }
     catch{
-      case ex: Throwable => stmt close (); throw ex
+      case ex: Throwable => throw ex
+    } finally {
+      stmt close ()
     }
   }
 
@@ -262,10 +278,13 @@ trait Queryable[DBType] {
     try{
       stmt execute (query, columns)
 
-      new ResultSetIterator(stmt, wrap(stmt getGeneratedKeys ()), f)
+      val res = new ResultSetIterator(stmt, wrap(stmt getGeneratedKeys ()), f)
+      Ugh(res)
     }
     catch{
-      case ex: Throwable => stmt close (); throw ex
+      case ex: Throwable => throw ex
+    } finally {
+      stmt close ()
     }
   }
 
@@ -284,10 +303,13 @@ trait Queryable[DBType] {
     try{
       stmt execute (query, columns)
 
-      new ResultSetIterator(stmt, wrap(stmt getGeneratedKeys ()), f)
+      val res = new ResultSetIterator(stmt, wrap(stmt getGeneratedKeys ()), f)
+      Ugh(res)
     }
     catch{
-      case ex: Throwable => stmt close (); throw ex
+      case ex: Throwable => throw ex
+    } finally {
+      stmt close ()
     }
   }
 
@@ -409,10 +431,13 @@ trait Queryable[DBType] {
   def proc[T](f: RichResultSet => T, query: String)(con: Connection): CloseableIterator[T] ={
     val callable = con prepareCall query
     try{
-      new ResultSetIterator(callable, wrap(callable executeQuery ()), f)
+      val res = new ResultSetIterator(callable, wrap(callable executeQuery ()), f)
+      Ugh(res)
     }
-    catch{
-      case ex: Throwable => callable close (); throw ex
+    catch {
+      case ex: Throwable => throw ex
+    } finally {
+      callable close ()
     }
   }
 
@@ -431,10 +456,13 @@ trait Queryable[DBType] {
     try{
       statement(con, callable, params: _*)
 
-      new ResultSetIterator(callable, wrap(callable executeQuery ()), f)
+      val res = new ResultSetIterator(callable, wrap(callable executeQuery ()), f)
+      Ugh(res)
     }
     catch{
-      case ex: Throwable => callable close (); throw ex
+      case ex: Throwable => throw ex
+    } finally {
+      callable close ()
     }
   }
 
