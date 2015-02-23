@@ -22,14 +22,18 @@ import java.io.{ Reader, InputStream }
 import xml.{NodeSeq, Document}
 import org.joda.time.{DateTime, LocalDate, LocalTime}
 
-class Ugh[A](it: Iterator[A]) extends CloseableIterator[A] {
+class DummyCloseableIterator[A](it: Iterator[A]) extends CloseableIterator[A] {
   def hasNext = it.hasNext
   def next = it.next
   def close() = {}
 }
 
-object Ugh {
-  def apply[A](it: CloseableIterator[A]): Ugh[A] = new Ugh(it.toList.toIterator)
+object DummyCloseableIterator {
+  def apply[Res <: ResultSet, A](it: ResultSetIterator[Res, A]): DummyCloseableIterator[A] = {
+    val res = it.toList
+    it.close()
+    new DummyCloseableIterator(res.toIterator)
+  }
 }
 
 /**
@@ -70,7 +74,7 @@ trait Queryable[DBType] {
       statement(con, prepared, params: _*)
 
       val res = new ResultSetIterator(prepared, wrap(prepared executeQuery ()), f)
-      Ugh(res)
+      DummyCloseableIterator(res)
     }
     catch{
       case ex: Throwable => throw ex
@@ -92,7 +96,7 @@ trait Queryable[DBType] {
     val stmt = con createStatement ()
     try{
       val res = new ResultSetIterator(stmt, wrap(stmt executeQuery query), f)
-      Ugh(res)
+      DummyCloseableIterator(res)
     }
     catch{
       case ex: Throwable => throw ex
@@ -182,7 +186,7 @@ trait Queryable[DBType] {
       statement(con, prepared, params: _*) executeUpdate ()
 
       val res = new ResultSetIterator[ResultSet,Int](prepared, prepared getGeneratedKeys (), _ getInt 1) //compiler can't deduce the types...
-      Ugh(res)
+      DummyCloseableIterator(res)
     }
     catch{
       case ex: Throwable => throw ex
@@ -208,7 +212,7 @@ trait Queryable[DBType] {
       statement(con, prepared, params: _*) executeUpdate ()
 
       val res = new ResultSetIterator(prepared, wrap(prepared getGeneratedKeys ()), f)
-      Ugh(res)
+      DummyCloseableIterator(res)
     }
     catch{
       case ex: Throwable => throw ex
@@ -233,7 +237,7 @@ trait Queryable[DBType] {
       statement(con, prepared, params: _*) executeUpdate ()
 
       val res = new ResultSetIterator(prepared, wrap(prepared getGeneratedKeys ()), f)
-      Ugh(res)
+      DummyCloseableIterator(res)
     }
     catch{
       case ex: Throwable => throw ex
@@ -255,7 +259,7 @@ trait Queryable[DBType] {
       stmt executeUpdate (query, Statement.RETURN_GENERATED_KEYS)
 
       val res = new ResultSetIterator[ResultSet,Int](stmt, stmt getGeneratedKeys (), _ getInt 1) //compiler can't deduce the types...
-      Ugh(res)
+      DummyCloseableIterator(res)
     }
     catch{
       case ex: Throwable => throw ex
@@ -279,7 +283,7 @@ trait Queryable[DBType] {
       stmt execute (query, columns)
 
       val res = new ResultSetIterator(stmt, wrap(stmt getGeneratedKeys ()), f)
-      Ugh(res)
+      DummyCloseableIterator(res)
     }
     catch{
       case ex: Throwable => throw ex
@@ -304,7 +308,7 @@ trait Queryable[DBType] {
       stmt execute (query, columns)
 
       val res = new ResultSetIterator(stmt, wrap(stmt getGeneratedKeys ()), f)
-      Ugh(res)
+      DummyCloseableIterator(res)
     }
     catch{
       case ex: Throwable => throw ex
@@ -432,7 +436,7 @@ trait Queryable[DBType] {
     val callable = con prepareCall query
     try{
       val res = new ResultSetIterator(callable, wrap(callable executeQuery ()), f)
-      Ugh(res)
+      DummyCloseableIterator(res)
     }
     catch {
       case ex: Throwable => throw ex
@@ -457,7 +461,7 @@ trait Queryable[DBType] {
       statement(con, callable, params: _*)
 
       val res = new ResultSetIterator(callable, wrap(callable executeQuery ()), f)
-      Ugh(res)
+      DummyCloseableIterator(res)
     }
     catch{
       case ex: Throwable => throw ex
