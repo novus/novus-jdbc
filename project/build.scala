@@ -26,7 +26,7 @@ object NovusjdbcBuild extends sbt.Build {
     id = "novus-jdbc",
     base = file("."),
     settings = baseSettings
-  ).aggregate(novusJdbc, novusJdbcBonecp, novusJdbcDBCP, novusJdbcC3P0, novusJdbcTomcat, novusJdbcLogging)
+  ).aggregate(novusJdbc, novusJdbcHikari, novusJdbcBonecp, novusJdbcDBCP, novusJdbcC3P0, novusJdbcTomcat, novusJdbcLogging)
   
   lazy val novusJdbc = Project(
     id = "novus-jdbc-core",
@@ -39,6 +39,14 @@ object NovusjdbcBuild extends sbt.Build {
         "org.joda" % "joda-convert" % "1.2" % "compile",
         "org.hsqldb" % "hsqldb" % "2.2.9" % "test"
     ) ++ Shared.specsDep(v))))
+
+  lazy val novusJdbcHikari = Project(
+    id = "novus-jdbc-hikari",
+    base = file("novus-jdbc-hikari"),
+    settings = baseSettings ++ Seq(libraryDependencies <++= scalaVersion(v => Seq(
+      "com.zaxxer" % "HikariCP" % "2.4.3"
+    ) ++ Shared.specsDep(v)))
+  ).dependsOn(novusJdbc)
 
   lazy val novusJdbcBonecp = Project(
     id = "novus-jdbc-bonecp",
@@ -81,7 +89,7 @@ object NovusjdbcBuild extends sbt.Build {
 
   lazy val baseSettings = Project.defaultSettings ++ Seq(
     organization := "com.novus",
-    version := "0.10.0-NOVUS",
+    version := "0.10.0-NOVUS-SNAPSHOT",
     scalaVersion := "2.10.3",
     initialCommands := "import com.novus.jdbc._",
     scalacOptions := Seq("-deprecation", "-unchecked", "-feature", "-language:postfixOps"),
